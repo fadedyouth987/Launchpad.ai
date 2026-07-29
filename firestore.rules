@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Workspaces Collection
+    match /workspaces/{workspaceId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(workspaceId)
+        && incoming().ownerId == request.auth.uid
+        && incoming().name is string && incoming().name.size() <= 100
+        && incoming().slug is string && incoming().slug.size() <= 50;
+      allow update: if isSignedIn() && isValidId(workspaceId)
+        && (existing().ownerId == request.auth.uid || incoming().ownerId == existing().ownerId);
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    // Campaign Assets Collection
+    match /campaignAssets/{assetId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(assetId)
+        && incoming().userId == request.auth.uid
+        && incoming().title is string && incoming().title.size() <= 200
+        && incoming().caption is string && incoming().caption.size() <= 2000;
+      allow update: if isSignedIn() && isValidId(assetId)
+        && (existing().userId == request.auth.uid || incoming().userId == existing().userId);
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Ledger Entries Collection
+    match /ledgerEntries/{entryId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(entryId)
+        && incoming().userId == request.auth.uid;
+      allow update, delete: if false; // Immutable ledger
+    }
+
+    // Audit Logs Collection
+    match /auditLogs/{logId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(logId)
+        && incoming().userId == request.auth.uid;
+      allow update, delete: if false; // Immutable audit log
+    }
+  }
+}

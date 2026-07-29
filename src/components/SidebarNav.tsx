@@ -23,7 +23,9 @@ import {
   Search,
   Sliders,
   Globe,
-  Bell
+  Bell,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 interface SidebarNavProps {
@@ -36,6 +38,7 @@ interface SidebarNavProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
   themeMode?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({
@@ -48,6 +51,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   isCollapsed,
   setIsCollapsed,
   themeMode = 'light',
+  onToggleTheme,
 }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isWorkspaceDropdownOpen, setIsWorkspaceDropdownOpen] = useState(false);
@@ -347,6 +351,40 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
             >
               <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
             </button>
+          )}
+
+          {/* Dark Mode Toggle Button */}
+          {onToggleTheme && (
+            !isCollapsed ? (
+              <button
+                onClick={onToggleTheme}
+                className={`w-full py-2 px-3 rounded-xl border flex items-center justify-between text-xs font-semibold transition-all ${
+                  isLight
+                    ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                    : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300'
+                }`}
+              >
+                <span className="flex items-center space-x-2">
+                  {isLight ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-400" />}
+                  <span>{isLight ? 'Light Mode' : 'Dark Mode'}</span>
+                </span>
+                <span className="text-[10px] font-mono uppercase font-bold text-indigo-500">
+                  {isLight ? 'Switch to Dark' : 'Switch to Light'}
+                </span>
+              </button>
+            ) : (
+              <button
+                onClick={onToggleTheme}
+                className={`w-full py-2.5 rounded-xl border flex items-center justify-center transition-all ${
+                  isLight
+                    ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                    : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300'
+                }`}
+                title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+              >
+                {isLight ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-400" />}
+              </button>
+            )
           )}
 
           {/* Quick Create Action Button */}

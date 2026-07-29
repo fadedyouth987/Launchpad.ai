@@ -1,0 +1,91 @@
+{
+  "entities": {
+    "workspace": {
+      "title": "Workspace",
+      "description": "Enterprise workspace tenant definition",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "slug": { "type": "string", "maxLength": 50 },
+        "plan": { "type": "string", "enum": ["starter", "professional", "enterprise"] },
+        "creditsRemaining": { "type": "number" },
+        "totalCreditsAllocated": { "type": "number" },
+        "legalHoldActive": { "type": "boolean" },
+        "retentionDays": { "type": "number" },
+        "ownerId": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["name", "slug", "plan", "creditsRemaining", "totalCreditsAllocated", "ownerId"]
+    },
+    "campaignAsset": {
+      "title": "Campaign Asset",
+      "description": "Social media creative campaign asset document",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "platform": { "type": "string", "enum": ["instagram", "tiktok", "linkedin", "twitter", "facebook"] },
+        "status": { "type": "string", "enum": ["draft", "pending_review", "approved", "rejected", "scheduled", "published"] },
+        "currentVersion": { "type": "number" },
+        "caption": { "type": "string", "maxLength": 2000 },
+        "imagePrompt": { "type": "string", "maxLength": 1000 },
+        "visualDirection": { "type": "string", "maxLength": 1000 },
+        "scheduledTime": { "type": "string", "maxLength": 100 },
+        "approverId": { "type": "string", "maxLength": 128 },
+        "decidedAt": { "type": "string", "maxLength": 100 },
+        "rejectionReason": { "type": "string", "maxLength": 500 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["workspaceId", "title", "platform", "status", "caption", "userId"]
+    },
+    "ledgerEntry": {
+      "title": "Ledger Entry",
+      "description": "Atomic credit ledger entry",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string", "enum": ["reservation", "deduction", "refund", "purchase", "topup"] },
+        "description": { "type": "string", "maxLength": 500 },
+        "amountCredits": { "type": "number" },
+        "resultingBalance": { "type": "number" },
+        "userId": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["workspaceId", "timestamp", "type", "amountCredits", "resultingBalance", "userId"]
+    },
+    "auditLog": {
+      "title": "Audit Log",
+      "description": "Security and compliance audit log",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string", "maxLength": 100 },
+        "actor": { "type": "string", "maxLength": 100 },
+        "action": { "type": "string", "maxLength": 100 },
+        "details": { "type": "string", "maxLength": 1000 },
+        "ipAddress": { "type": "string", "maxLength": 50 },
+        "securitySeverity": { "type": "string", "enum": ["info", "warning", "critical"] },
+        "userId": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["workspaceId", "timestamp", "actor", "action", "details", "userId"]
+    }
+  },
+  "firestore": {
+    "/workspaces/{workspaceId}": {
+      "schema": { "$ref": "workspace" },
+      "description": "Workspaces collection"
+    },
+    "/campaignAssets/{assetId}": {
+      "schema": { "$ref": "campaignAsset" },
+      "description": "Campaign Assets collection"
+    },
+    "/ledgerEntries/{entryId}": {
+      "schema": { "$ref": "ledgerEntry" },
+      "description": "Credit Ledger Entries collection"
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "auditLog" },
+      "description": "Audit Logs collection"
+    }
+  }
+}

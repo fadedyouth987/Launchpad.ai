@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Workspace } from '../types';
+import { auth, logoutUser } from '../lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { AuthModal } from './Modals/AuthModal';
 import { 
   Search, 
   Bell, 
@@ -14,7 +17,11 @@ import {
   BarChart3,
   MessageSquare,
   Sun,
-  Moon
+  Moon,
+  LogIn,
+  LogOut,
+  Database,
+  UserPlus
 } from 'lucide-react';
 
 interface TopHeaderBarProps {
@@ -36,7 +43,24 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotificationToast, setShowNotificationToast] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
   const isLight = themeMode === 'light';
+
+  const openAuthModal = (mode: 'signin' | 'signup' = 'signin') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Map active tab to breadcrumb title & category
   const getTabDetails = (tab: string) => {
@@ -179,6 +203,76 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
             <span className="hidden sm:inline">New Asset</span>
           </button>
 
+          {/* Firebase Authentication & Account Sync */}
+          {!authLoading && (
+            user ? (
+              <div className={`flex items-center space-x-2 pl-2 pr-2.5 py-1 rounded-xl border text-xs ${
+                isLight ? 'bg-amber-50/80 border-amber-200 text-amber-900' : 'bg-slate-900 border-amber-500/30 text-amber-300'
+              }`}>
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt={user.displayName || 'User'} className="w-5 h-5 rounded-full object-cover border border-amber-400" />
+                ) : (
+                  <Database className="w-4 h-4 text-amber-500" />
+                )}
+                <span className="font-bold truncate max-w-[100px] hidden md:inline">{user.displayName || user.email?.split('@')[0]}</span>
+                <span className="text-[10px] bg-amber-500/20 text-amber-600 font-mono font-bold px-1.5 py-0.5 rounded">Firebase Active</span>
+                <button
+                  onClick={() => logoutUser()}
+                  title="Sign out"
+                  className="p-1 hover:text-red-500 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => openAuthModal('signin')}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    isLight
+                      ? 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm'
+                      : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-800'
+                  }`}
+                >
+                  <LogIn className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Sign In</span>
+                </button>
+                <button
+                  onClick={() => openAuthModal('signup')}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center space-x-1.5 shadow-md shadow-indigo-600/20 transition-all"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign Up</span>
+                </button>
+              </div>
+            )
+          )}
+
+          {/* Dark / Light Theme Toggle Trigger */}
+          {onToggleTheme && (
+            <button
+              onClick={onToggleTheme}
+              title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
+              className={`px-2.5 py-2 rounded-xl border transition-all flex items-center space-x-1.5 text-xs font-semibold ${
+                isLight
+                  ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                  : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
+              }`}
+            >
+              {isLight ? (
+                <>
+                  <Moon className="w-4 h-4 text-indigo-600 fill-indigo-600/20" />
+                  <span className="hidden md:inline text-[11px] font-bold">Dark</span>
+                </>
+              ) : (
+                <>
+                  <Sun className="w-4 h-4 text-amber-400 fill-amber-400/20" />
+                  <span className="hidden md:inline text-[11px] font-bold">Light</span>
+                </>
+              )}
+            </button>
+          )}
+
           {/* Notifications Trigger */}
           <div className="relative">
             <button
@@ -225,6 +319,13 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
           </div>
         </div>
       </div>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialMode={authModalMode}
+        themeMode={themeMode}
+      />
     </header>
   );
 };

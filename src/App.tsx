@@ -473,6 +473,7 @@ export default function App() {
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
         themeMode={themeMode}
+        onToggleTheme={toggleThemeMode}
       />
 
       {/* Main Content Area - Responsive padding on desktop only */}
@@ -593,6 +594,7 @@ export default function App() {
             ledgerEntries={ledgerEntries}
             onOpenTopUp={() => setIsTopUpOpen(true)}
             onOpenPlanModal={() => setIsPlanModalOpen(true)}
+            themeMode={themeMode}
           />
         )}
 
