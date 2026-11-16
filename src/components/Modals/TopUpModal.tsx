@@ -1,46 +1,72 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Dialog } from '../ui/Dialog';
 import { Workspace } from '../../types';
-import { Zap, CheckCircle2, CreditCard, X, ShieldCheck } from 'lucide-react';
+import { Zap, CreditCard, X, ShieldCheck } from 'lucide-react';
+import { apiErrorMessage, apiJson } from '../../lib/api';
 
 interface TopUpModalProps {
   currentWorkspace: Workspace;
   isOpen: boolean;
   onClose: () => void;
-  onConfirmTopUp: (amountCredits: number, priceUsd: number) => void;
 }
 
-export const TopUpModal: React.FC<TopUpModalProps> = ({
-  currentWorkspace,
-  isOpen,
-  onClose,
-  onConfirmTopUp,
-}) => {
-  const [selectedPackage, setSelectedPackage] = useState<{ credits: number; priceUsd: number }>({ credits: 1500, priceUsd: 49 });
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+interface Packs {
+  enabled: boolean;
+  currency: string;
+  packs: { credits: number; amount: number }[];
+}
+
+const money = (amount: number, currency: string) =>
+  new Intl.NumberFormat(undefined, { style: 'currency', currency: currency.toUpperCase() }).format(amount / 100);
+
+/** Credit top-up through Stripe Checkout. Credits are added by the server when Stripe confirms payment. */
+export const TopUpModal: React.FC<TopUpModalProps> = ({ currentWorkspace, isOpen, onClose }) => {
+  const [packs, setPacks] = useState<Packs | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setError(null);
+    apiJson<Packs>('/api/billing/packs').then((r) => {
+      if (r.ok) {
+        setPacks(r.data);
+        setSelected((s) => s ?? r.data.packs[Math.min(1, r.data.packs.length - 1)]?.credits ?? null);
+      } else setError(apiErrorMessage(r, 'Could not load credit packs.'));
+    });
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const packages = [
-    { credits: 500, priceUsd: 19, tag: 'Starter Pack' },
-    { credits: 1500, priceUsd: 49, tag: 'Most Popular', highlight: true },
-    { credits: 5000, priceUsd: 149, tag: 'Enterprise Scale' },
-  ];
-
-  const handlePurchase = () => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      onConfirmTopUp(selectedPackage.credits, selectedPackage.priceUsd);
-      setIsProcessing(false);
-      onClose();
-    }, 1200);
+  const checkout = async () => {
+    if (!selected) return;
+    setBusy(true);
+    setError(null);
+    const r = await apiJson<{ url?: string }>('/api/billing/checkout', {
+      json: { workspaceId: currentWorkspace.id, credits: selected },
+    });
+    if (r.ok && r.data.url) {
+      window.location.assign(r.data.url);
+      return;
+    }
+    setBusy(false);
+    setError(apiErrorMessage(r, 'Could not start checkout.'));
   };
 
+  const enabled = Boolean(packs?.enabled);
+
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <Dialog
+      onClose={onClose}
+      label="Top up credits"
+      className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
       <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl relative">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg"
+          aria-label="Close"
         >
           <X className="w-5 h-5" />
         </button>
@@ -50,75 +76,71 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
             <span className="p-2 rounded-xl bg-amber-950 text-amber-400 border border-amber-800/60">
               <Zap className="w-5 h-5" />
             </span>
-            <h3 className="text-lg font-bold text-white">Instant Credit Top-Up</h3>
+            <h3 className="text-lg font-bold text-white">Top up credits</h3>
           </div>
-          <p className="text-xs text-slate-400">
-            Add credits to <strong className="text-slate-200">{currentWorkspace.name}</strong>. Transactions are processed with atomic idempotent outbox settlement.
+          <p className="text-sm text-slate-300">
+            Add credits to <strong className="text-white">{currentWorkspace.name}</strong>.{' '}
+            {enabled
+              ? 'You pay on Stripe’s secure page; credits appear here as soon as Stripe confirms the payment. Owners and admins can buy.'
+              : 'Payments are not connected on this server, so purchases are off. The server admin must set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET.'}
           </p>
         </div>
 
-        {/* Package Selector Grid */}
-        <div className="grid grid-cols-3 gap-3">
-          {packages.map((pkg) => {
-            const isSelected = selectedPackage.credits === pkg.credits;
+        <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Credit pack">
+          {(packs?.packs ?? []).map((pkg) => {
+            const isSelected = selected === pkg.credits;
             return (
-              <div
+              <button
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
                 key={pkg.credits}
-                onClick={() => setSelectedPackage({ credits: pkg.credits, priceUsd: pkg.priceUsd })}
-                className={`p-4 rounded-xl border cursor-pointer transition-all space-y-2 text-center relative ${
+                onClick={() => setSelected(pkg.credits)}
+                className={`p-4 rounded-xl border transition-all space-y-2 text-center ${
                   isSelected
-                    ? 'bg-amber-950/40 border-amber-500 ring-1 ring-amber-500 shadow-lg shadow-amber-500/10'
+                    ? 'bg-amber-950/40 border-amber-500 ring-1 ring-amber-500'
                     : 'bg-slate-950 border-slate-800 hover:border-slate-700'
                 }`}
               >
-                {pkg.highlight && (
-                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-950 font-extrabold text-[9px] uppercase px-2 py-0.5 rounded-full">
-                    {pkg.tag}
-                  </span>
-                )}
                 <div className="font-mono text-xl font-extrabold text-white">+{pkg.credits.toLocaleString()}</div>
-                <div className="text-xs text-slate-400 font-semibold">${pkg.priceUsd} USD</div>
-              </div>
+                <div className="text-sm text-slate-300 font-semibold">{money(pkg.amount, packs!.currency)}</div>
+              </button>
             );
           })}
         </div>
 
-        {/* Stripe Info Box */}
-        <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+        <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-sm text-slate-300 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <CreditCard className="w-4 h-4 text-indigo-400" />
-            <span>Simulated Stripe Checkout • Idempotent Outbox Active</span>
+            <CreditCard className="w-4 h-4 text-indigo-300" />
+            <span>{enabled ? 'Stripe Checkout connected' : 'No payment provider connected: purchases are off'}</span>
           </div>
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
         </div>
 
-        {/* Actions */}
+        {error && (
+          <p className="text-sm font-semibold text-rose-300" role="alert">
+            {error}
+          </p>
+        )}
+
         <div className="flex items-center justify-end space-x-3 pt-2 border-t border-slate-800">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-800"
+            className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white bg-slate-800"
           >
             Cancel
           </button>
           <button
-            onClick={handlePurchase}
-            disabled={isProcessing}
-            className="px-6 py-2.5 rounded-xl text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 shadow-lg shadow-amber-400/20 flex items-center space-x-2 transition-all"
+            onClick={checkout}
+            disabled={!enabled || busy || !selected}
+            data-testid={enabled ? 'topup-checkout' : 'topup-disabled'}
+            className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-amber-600 hover:bg-amber-500 disabled:bg-slate-800 disabled:text-slate-400 disabled:cursor-not-allowed flex items-center space-x-2"
           >
-            {isProcessing ? (
-              <>
-                <span className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
-                <span>Processing Payment...</span>
-              </>
-            ) : (
-              <>
-                <Zap className="w-4 h-4" />
-                <span>Confirm Purchase (${selectedPackage.priceUsd})</span>
-              </>
-            )}
+            <Zap className="w-4 h-4" />
+            <span>{!enabled ? 'Payments not connected' : busy ? 'Opening Stripe…' : 'Pay with Stripe'}</span>
           </button>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 };

@@ -1,0 +1,16 @@
+# Files NOT uploaded by `gcloud run deploy --source .` (the image is built from the Dockerfile).
+.gcloudignore
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+node_modules
+dist
+coverage
+test-results
+playwright-report
+*.log
+*.pem
+*service-account*.json
+.wrangler

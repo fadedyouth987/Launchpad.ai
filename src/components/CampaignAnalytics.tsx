@@ -1,264 +1,197 @@
-import React, { useState } from 'react';
-import { Workspace, CampaignAsset } from '../types';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Eye, 
-  ThumbsUp, 
-  Share2, 
-  DollarSign, 
-  Globe, 
-  ArrowUpRight, 
-  Linkedin, 
-  Instagram, 
-  Video, 
-  Twitter, 
-  Facebook,
-  Filter,
-  Calendar
-} from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { BarChart3, CheckCircle2, Clock, Coins, Globe, Info, Layers } from 'lucide-react';
+import type { CampaignAsset, LedgerEntry, Platform, Workspace } from '../types';
 
 interface CampaignAnalyticsProps {
   currentWorkspace: Workspace;
   assets: CampaignAsset[];
+  ledgerEntries?: LedgerEntry[];
 }
 
+const PLATFORMS: Platform[] = ['linkedin', 'instagram', 'tiktok', 'twitter', 'facebook'];
+const STATUSES: CampaignAsset['status'][] = [
+  'draft',
+  'pending_review',
+  'approved',
+  'scheduled',
+  'published',
+  'rejected',
+];
+const STATUS_LABEL: Record<CampaignAsset['status'], string> = {
+  draft: 'Draft',
+  pending_review: 'In review',
+  approved: 'Approved',
+  scheduled: 'Scheduled',
+  published: 'Published',
+  rejected: 'Changes requested',
+};
+const RANGES = { '7d': 7, '30d': 30, '90d': 90 } as const;
+
+function created(a: CampaignAsset): number {
+  const t = Date.parse(a.versions?.[0]?.createdAt || '');
+  return Number.isFinite(t) ? t : 0;
+}
+
+/**
+ * Analytics computed from this workspace's real data (assets and the credit ledger). Social reach,
+ * clicks and engagement need the social networks' APIs, which are not connected, so they are not
+ * shown as numbers.
+ */
 export const CampaignAnalytics: React.FC<CampaignAnalyticsProps> = ({
   currentWorkspace,
   assets,
+  ledgerEntries = [],
 }) => {
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
+  const [range, setRange] = useState<keyof typeof RANGES>('30d');
+  const since = Date.now() - RANGES[range] * 86_400_000;
 
-  const workspaceAssets = assets.filter((a) => a.workspaceId === currentWorkspace.id);
+  const m = useMemo(() => {
+    const inRange = assets.filter((a) => created(a) >= since || created(a) === 0);
+    const byStatus = Object.fromEntries(STATUSES.map((s) => [s, inRange.filter((a) => a.status === s).length]));
+    const byPlatform = PLATFORMS.map((p) => ({
+      platform: p,
+      total: inRange.filter((a) => a.platform === p).length,
+      published: inRange.filter((a) => a.platform === p && a.status === 'published').length,
+    }));
+    const decided = byStatus.approved + byStatus.scheduled + byStatus.published + byStatus.rejected;
+    const approvalRate = decided ? Math.round(((decided - byStatus.rejected) / decided) * 100) : null;
+    const upcoming = assets
+      .filter((a) => a.status === 'scheduled' && a.scheduledTime && Date.parse(a.scheduledTime) > Date.now())
+      .sort((a, b) => Date.parse(a.scheduledTime!) - Date.parse(b.scheduledTime!))
+      .slice(0, 5);
+    const ledger = ledgerEntries.filter((e) => Date.parse(e.timestamp) >= since);
+    const spent = -ledger
+      .filter((e) => e.type === 'reservation' || e.type === 'deduction')
+      .reduce((s, e) => s + e.amountCredits, 0);
+    const refunded = ledger.filter((e) => e.type === 'refund').reduce((s, e) => s + e.amountCredits, 0);
+    const added = ledger
+      .filter((e) => ['purchase', 'topup', 'grant'].includes(e.type))
+      .reduce((s, e) => s + e.amountCredits, 0);
+    const aiCalls = ledger.filter((e) => e.type === 'reservation').length;
+    return { inRange, byStatus, byPlatform, approvalRate, upcoming, spent, refunded, added, aiCalls };
+  }, [assets, ledgerEntries, since]);
 
-  // Performance Stat Overview
-  const stats = [
-    {
-      title: 'Total Organic Reach',
-      value: '284,920',
-      change: '+24.8%',
-      isPositive: true,
-      icon: <Eye className="w-4 h-4 text-indigo-400" />,
-      subtext: 'Across 5 active channels',
-    },
-    {
-      title: 'Total Engagements',
-      value: '38,410',
-      change: '+18.2%',
-      isPositive: true,
-      icon: <ThumbsUp className="w-4 h-4 text-emerald-400" />,
-      subtext: 'Likes, comments, & shares',
-    },
-    {
-      title: 'Avg. Click-Through Rate',
-      value: '4.62%',
-      change: '+1.1%',
-      isPositive: true,
-      icon: <TrendingUp className="w-4 h-4 text-purple-400" />,
-      subtext: '2.8x industry benchmark',
-    },
-    {
-      title: 'Estimated AI Generation ROI',
-      value: '14.2x',
-      change: '+$18.4k',
-      isPositive: true,
-      icon: <DollarSign className="w-4 h-4 text-amber-400" />,
-      subtext: 'Saved agency production costs',
-    },
-  ];
-
-  // Channel Breakdown Metrics
-  const channelMetrics = [
-    {
-      platform: 'linkedin',
-      name: 'LinkedIn Enterprise',
-      icon: <Linkedin className="w-4 h-4 text-blue-400" />,
-      impressions: '112,400',
-      engagementRate: '5.8%',
-      topFormat: '3D Tech Dashboards',
-      status: 'Top Performer',
-    },
-    {
-      platform: 'instagram',
-      name: 'Instagram Brand',
-      icon: <Instagram className="w-4 h-4 text-pink-400" />,
-      impressions: '84,100',
-      engagementRate: '4.2%',
-      topFormat: 'Editorial Carousels',
-      status: 'Steady Growth',
-    },
-    {
-      platform: 'tiktok',
-      name: 'TikTok Global',
-      icon: <Video className="w-4 h-4 text-teal-400" />,
-      impressions: '62,800',
-      engagementRate: '7.1%',
-      topFormat: 'Viral Growth Hooks',
-      status: 'High Engagement',
-    },
-    {
-      platform: 'twitter',
-      name: 'X (Twitter) Tech',
-      icon: <Twitter className="w-4 h-4 text-sky-400" />,
-      impressions: '25,620',
-      engagementRate: '3.1%',
-      topFormat: 'Product Release Threads',
-      status: 'Active',
-    },
-  ];
+  const max = Math.max(1, ...m.byPlatform.map((p) => p.total));
+  const stat = (label: string, value: string, sub: string, icon: React.ReactNode) => (
+    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+      <div className="flex items-center justify-between text-sm font-semibold text-slate-300">
+        {label} {icon}
+      </div>
+      <p className="mt-2 font-mono text-3xl font-extrabold text-white">{value}</p>
+      <p className="mt-1 text-sm text-slate-400">{sub}</p>
+    </div>
+  );
 
   return (
-    <div className="space-y-8 w-full">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="p-2 rounded-xl bg-purple-950 text-purple-400 border border-purple-800/60">
-              <BarChart3 className="w-5 h-5" />
-            </span>
-            <h1 className="text-2xl font-extrabold text-white">Campaign Performance & AI ROI Analytics</h1>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800/60">
-              Realtime Attribution
-            </span>
-          </div>
-          <p className="text-slate-400 text-xs mt-1">
-            Track multi-channel audience engagement, impressions, click-through rates, and AI content ROI.
-          </p>
-        </div>
-
-        {/* Time Selector */}
-        <div className="flex items-center space-x-1.5 bg-slate-900 border border-slate-800 p-1 rounded-xl text-xs">
-          <Calendar className="w-3.5 h-3.5 text-slate-400 ml-2" />
-          <button
-            onClick={() => setTimeRange('7d')}
-            className={`px-3 py-1 rounded-lg font-medium transition-colors ${
-              timeRange === '7d' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Last 7 Days
-          </button>
-          <button
-            onClick={() => setTimeRange('30d')}
-            className={`px-3 py-1 rounded-lg font-medium transition-colors ${
-              timeRange === '30d' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Last 30 Days
-          </button>
-          <button
-            onClick={() => setTimeRange('90d')}
-            className={`px-3 py-1 rounded-lg font-medium transition-colors ${
-              timeRange === '90d' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Quarter
-          </button>
+    <div className="space-y-6 w-full" data-testid="analytics">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-300">
+          Real numbers from <strong className="text-white">{currentWorkspace.name}</strong>: assets created in Launchpad
+          and the credit ledger. Range applies to asset creation and ledger dates.
+        </p>
+        <div className="flex rounded-xl border border-slate-800 bg-slate-900 p-1" role="group" aria-label="Date range">
+          {(Object.keys(RANGES) as Array<keyof typeof RANGES>).map((r) => (
+            <button
+              key={r}
+              type="button"
+              aria-pressed={range === r}
+              onClick={() => setRange(r)}
+              className={`rounded-lg px-3 py-1.5 text-sm font-bold ${range === r ? 'bg-indigo-600 text-white' : 'text-slate-300'}`}
+            >
+              Last {RANGES[r]} days
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Top Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {stats.map((st, idx) => (
-          <div key={idx} className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-2 relative overflow-hidden">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">{st.title}</span>
-              <div className="p-2 bg-slate-950 rounded-xl border border-slate-800">{st.icon}</div>
-            </div>
-            <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-extrabold text-white font-mono">{st.value}</span>
-              <span className="text-xs font-bold text-emerald-400 flex items-center">
-                <ArrowUpRight className="w-3 h-3" />
-                {st.change}
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500">{st.subtext}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stat(
+          'Assets created',
+          String(m.inRange.length),
+          `${m.byStatus.published} published · ${m.byStatus.scheduled} scheduled`,
+          <Layers className="h-4 w-4 text-indigo-300" />,
+        )}
+        {stat(
+          'Approval rate',
+          m.approvalRate === null ? '—' : `${m.approvalRate}%`,
+          'Of assets with a review decision',
+          <CheckCircle2 className="h-4 w-4 text-emerald-400" />,
+        )}
+        {stat(
+          'AI calls charged',
+          String(m.aiCalls),
+          `${m.spent.toLocaleString()} credits spent · ${m.refunded.toLocaleString()} refunded`,
+          <BarChart3 className="h-4 w-4 text-purple-400" />,
+        )}
+        {stat(
+          'Credits added',
+          m.added.toLocaleString(),
+          `Balance now ${currentWorkspace.creditsRemaining.toLocaleString()}`,
+          <Coins className="h-4 w-4 text-amber-400" />,
+        )}
       </div>
 
-      {/* Channel Breakdown & Content Performance Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Platform Metrics (7 Cols) */}
-        <div className="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-            <h3 className="text-base font-bold text-white flex items-center space-x-2">
-              <Globe className="w-4 h-4 text-indigo-400" />
-              <span>Multi-Platform Performance Breakdown</span>
-            </h3>
-            <span className="text-xs text-slate-400">Attribution Window: <strong className="text-slate-200">30 Days</strong></span>
-          </div>
-
-          <div className="space-y-3">
-            {channelMetrics.map((ch) => (
-              <div key={ch.platform} className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 flex items-center justify-between space-x-4">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                    {ch.icon}
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">{ch.name}</h4>
-                    <p className="text-[11px] text-slate-400">Best visual style: <strong className="text-slate-300">{ch.topFormat}</strong></p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-6 text-right text-xs">
-                  <div>
-                    <span className="text-slate-500 text-[10px] block">Impressions</span>
-                    <span className="font-mono font-bold text-slate-200">{ch.impressions}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 text-[10px] block">Engagement</span>
-                    <span className="font-mono font-bold text-emerald-400">{ch.engagementRate}</span>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800/60 hidden sm:inline-block">
-                    {ch.status}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+          <h3 className="flex items-center gap-2 text-base font-bold text-white">
+            <Globe className="h-4 w-4 text-indigo-300" /> Assets by channel
+          </h3>
+          <ul className="mt-4 space-y-3">
+            {m.byPlatform.map((p) => (
+              <li key={p.platform} className="text-sm">
+                <div className="flex justify-between text-slate-200">
+                  <span className="font-semibold capitalize">{p.platform}</span>
+                  <span>
+                    {p.total} total · {p.published} published
                   </span>
                 </div>
+                <div className="mt-1 h-2 rounded-full bg-slate-800">
+                  <div className="h-2 rounded-full bg-indigo-500" style={{ width: `${(p.total / max) * 100}%` }} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+          <h3 className="text-base font-bold text-white">Pipeline</h3>
+          <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+            {STATUSES.map((s) => (
+              <div key={s} className="flex justify-between rounded-xl bg-slate-950 px-3 py-2">
+                <dt className="text-slate-300">{STATUS_LABEL[s]}</dt>
+                <dd className="font-mono font-bold text-white">{m.byStatus[s]}</dd>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Right Column: AI Content Efficiency Tracker (5 Cols) */}
-        <div className="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <h3 className="text-base font-bold text-white flex items-center space-x-2 border-b border-slate-800 pb-4">
-            <TrendingUp className="w-4 h-4 text-amber-400" />
-            <span>AI Production Velocity & Savings</span>
-          </h3>
-
-          <div className="space-y-4 text-xs">
-            <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-300 font-bold">Content Asset Cycle Time</span>
-                <span className="font-mono text-emerald-400 font-bold">12 Min / Asset</span>
-              </div>
-              <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 w-4/5 rounded-full"></div>
-              </div>
-              <p className="text-[11px] text-slate-400">Reduced from traditional 3-day copywriting & design cycles.</p>
-            </div>
-
-            <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-300 font-bold">Decider Approval Speed</span>
-                <span className="font-mono text-indigo-400 font-bold">1.4 Hrs Avg</span>
-              </div>
-              <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 w-2/3 rounded-full"></div>
-              </div>
-              <p className="text-[11px] text-slate-400">Accelerated by locked-state RBAC review workflows.</p>
-            </div>
-
-            <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-300 font-bold">Credit Reserve Efficiency</span>
-                <span className="font-mono text-amber-400 font-bold">98.4% Success</span>
-              </div>
-              <p className="text-[11px] text-slate-400">Zero duplicate credit spends due to idempotent outbox ledgering.</p>
-            </div>
-          </div>
-        </div>
+          </dl>
+          <h4 className="mt-5 flex items-center gap-2 text-sm font-bold text-white">
+            <Clock className="h-4 w-4 text-amber-300" /> Next scheduled
+          </h4>
+          {m.upcoming.length ? (
+            <ul className="mt-2 space-y-1 text-sm text-slate-200">
+              {m.upcoming.map((a) => (
+                <li key={a.id}>
+                  {new Date(a.scheduledTime!).toLocaleString()} · <span className="capitalize">{a.platform}</span> ·{' '}
+                  {a.title}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-slate-400">Nothing scheduled in the future.</p>
+          )}
+        </section>
       </div>
+
+      <section
+        className="flex gap-3 rounded-2xl border border-amber-800/60 bg-amber-950/40 p-5 text-sm text-amber-100"
+        data-testid="analytics-not-connected"
+      >
+        <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+        <p>
+          Reach, impressions, clicks and engagement come from each social network&apos;s API, and no social accounts are
+          connected, so those numbers are not shown. Published posts are handed to your own tools through the{' '}
+          <strong>asset.published</strong> webhook; read their stats there.
+        </p>
+      </section>
     </div>
   );
 };

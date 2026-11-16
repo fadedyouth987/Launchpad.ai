@@ -1,46 +1,28 @@
-import React, { useState } from 'react';
-import { Workspace } from '../types';
-import { 
-  Sparkles, 
-  Layers, 
-  CheckCircle2, 
-  Calendar, 
-  CreditCard, 
-  Users, 
-  ShieldCheck, 
-  Activity, 
-  ChevronDown, 
-  PlusCircle,
-  Zap,
-  BarChart3,
-  Palette,
-  UserCheck,
-  MessageSquare,
-  Menu,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  Sliders,
-  Globe,
-  Bell,
-  Sun,
-  Moon
-} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Check, ChevronDown, ChevronsLeft, ChevronsRight, PlusCircle, Sparkles, X, Zap } from 'lucide-react';
+import type { Workspace } from '../types';
+import { NAV_SECTIONS, type TabId } from '../navigation';
 
 interface SidebarNavProps {
   currentWorkspace: Workspace;
   workspaces: Workspace[];
   onSelectWorkspace: (id: string) => void;
-  activeTab: string;
+  activeTab: TabId;
   setActiveTab: (tab: string) => void;
   onOpenTopUp: () => void;
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
-  themeMode?: 'light' | 'dark';
-  onToggleTheme?: () => void;
+  isMobileOpen: boolean;
+  setIsMobileOpen: (open: boolean) => void;
+  /** Rendered at the bottom of the mobile drawer only (account, theme, status). */
+  mobileFooter?: React.ReactNode;
 }
 
+/**
+ * Main navigation. Desktop: fixed sidebar that can collapse to icons (each keeps its name as a
+ * tooltip and accessible label). Below 1024px: an off-canvas drawer opened by the labelled "Menu"
+ * button in the header; Escape or the backdrop closes it.
+ */
 export const SidebarNav: React.FC<SidebarNavProps> = ({
   currentWorkspace,
   workspaces,
@@ -50,369 +32,286 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   onOpenTopUp,
   isCollapsed,
   setIsCollapsed,
-  themeMode = 'light',
-  onToggleTheme,
+  isMobileOpen,
+  setIsMobileOpen,
+  mobileFooter,
 }) => {
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isWorkspaceDropdownOpen, setIsWorkspaceDropdownOpen] = useState(false);
-  const isLight = themeMode === 'light';
+  const [wsOpen, setWsOpen] = useState(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const wsRef = useRef<HTMLDivElement>(null);
+  // In the mobile drawer the sidebar is always shown expanded.
+  const collapsed = isCollapsed && !isMobileOpen;
 
-  // Grouped Navigation Structure
-  const navGroups = [
-    {
-      groupTitle: 'Creation & Studio',
-      items: [
-        { id: 'overview', label: 'Overview', icon: <Sparkles className="w-4 h-4 text-indigo-400" /> },
-        { id: 'studio', label: 'AI Asset Studio', icon: <Sparkles className="w-4 h-4 text-amber-400" /> },
-        { id: 'influencers', label: 'AI Influencer Studio', icon: <UserCheck className="w-4 h-4 text-purple-400" /> },
-      ],
-    },
-    {
-      groupTitle: 'Publishing & Queue',
-      items: [
-        { id: 'approvals', label: 'Approvals Queue', icon: <CheckCircle2 className="w-4 h-4 text-emerald-400" /> },
-        { id: 'scheduler', label: 'Social Scheduler', icon: <Calendar className="w-4 h-4 text-blue-400" />, badge: 'Drag&Drop' },
-        { id: 'engagement', label: 'Smart Engagement', icon: <MessageSquare className="w-4 h-4 text-pink-400" />, badge: 'AI Replies' },
-        { id: 'publisher', label: 'Social Publisher', icon: <Globe className="w-4 h-4 text-slate-400" /> },
-      ],
-    },
-    {
-      groupTitle: 'Intelligence & Brand',
-      items: [
-        { id: 'analytics', label: 'Campaign Analytics', icon: <BarChart3 className="w-4 h-4 text-purple-400" /> },
-        { id: 'brand_library', label: 'Brand Kit & Rules', icon: <Palette className="w-4 h-4 text-indigo-400" /> },
-      ],
-    },
-    {
-      groupTitle: 'Admin & Governance',
-      items: [
-        { id: 'billing', label: 'Ledger & Billing', icon: <CreditCard className="w-4 h-4 text-slate-400" /> },
-        { id: 'presence', label: 'Team Presence', icon: <Users className="w-4 h-4 text-slate-400" /> },
-        { id: 'webhooks', label: 'Security & Webhooks', icon: <ShieldCheck className="w-4 h-4 text-slate-400" /> },
-        { id: 'audit_inspector', label: 'Audit Inspector', icon: <Activity className="w-4 h-4 text-emerald-400" />, badge: 'Certified' },
-      ],
-    },
-  ];
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setIsMobileOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMobileOpen, setIsMobileOpen]);
+
+  useEffect(() => {
+    if (!wsOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setWsOpen(false);
+    const onClick = (e: MouseEvent) => !wsRef.current?.contains(e.target as Node) && setWsOpen(false);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('mousedown', onClick);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('mousedown', onClick);
+    };
+  }, [wsOpen]);
+
+  const go = (id: TabId) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    setActiveTab(id);
+    setIsMobileOpen(false);
+  };
+
+  const pct = Math.min(
+    100,
+    currentWorkspace.totalCreditsAllocated > 0
+      ? (currentWorkspace.creditsRemaining / currentWorkspace.totalCreditsAllocated) * 100
+      : 0,
+  );
 
   return (
     <>
-      {/* MOBILE TOP BAR */}
-      <div className={`lg:hidden sticky top-0 z-50 p-3 flex items-center justify-between backdrop-blur-md border-b ${
-        isLight ? 'bg-white/90 border-slate-200 text-slate-900' : 'bg-slate-950 border-slate-800 text-white'
-      }`}>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setIsMobileOpen(!isMobileOpen)}
-            className={`p-2 rounded-xl border ${
-              isLight ? 'bg-slate-100 border-slate-200 text-slate-700' : 'bg-slate-900 border-slate-800 text-slate-300'
-            }`}
-          >
-            {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-          <div className="flex items-center space-x-2">
-            <span className="p-1.5 rounded-lg bg-indigo-600 text-white font-extrabold text-xs">L</span>
-            <span className={`font-extrabold text-sm tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>Launchpad AI</span>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={onOpenTopUp}
-            className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border font-bold text-xs ${
-              isLight ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-amber-950/80 border-amber-800/80 text-amber-300'
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-            <span>{currentWorkspace.credits}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* DESKTOP & MOBILE SLIDE-OVER SIDEBAR */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 border-r flex flex-col justify-between transition-all duration-300 ${
-          isLight 
-            ? 'bg-white border-slate-200 text-slate-900 shadow-sm' 
-            : 'bg-slate-950 border-slate-800/80 text-white'
-        } ${
-          isCollapsed ? 'w-20' : 'w-64'
-        } ${
-          isMobileOpen
-            ? 'translate-x-0 w-72 shadow-2xl'
-            : '-translate-x-full lg:translate-x-0'
-        }`}
+        id="main-navigation"
+        aria-label="Sidebar"
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-line bg-surface text-ink transition-[transform,width] duration-200 lg:z-30 ${
+          collapsed ? 'lg:w-sidebar-collapsed' : 'lg:w-sidebar'
+        } w-[min(20rem,88vw)] ${isMobileOpen ? 'translate-x-0 shadow-popover' : '-translate-x-full lg:translate-x-0'}`}
       >
-        {/* Top Header Section */}
-        <div className={`p-4 border-b space-y-4 ${isLight ? 'border-slate-100' : 'border-slate-900'}`}>
-          {/* Brand Row + Collapse Toggle */}
-          <div className="flex items-center justify-between">
-            <div
-              onClick={() => setActiveTab('overview')}
-              className="flex items-center space-x-3 cursor-pointer group"
+        {/* Brand + collapse */}
+        <div
+          className={`flex items-center gap-2 border-b border-line p-3 ${collapsed ? 'flex-col' : 'justify-between'}`}
+        >
+          <a
+            href="#/overview"
+            onClick={go('overview')}
+            aria-label={collapsed ? 'Launchpad AI, go to Overview' : undefined}
+            title="Go to Overview"
+            className="flex min-w-0 items-center gap-3 rounded-control p-1"
+          >
+            <span
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-control bg-brand-600 text-white"
+              aria-hidden="true"
             >
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 p-0.5 shadow-md shadow-indigo-600/20">
-                <div className={`w-full h-full rounded-[10px] flex items-center justify-center transition-colors ${
-                  isLight ? 'bg-white group-hover:bg-slate-50' : 'bg-slate-950 group-hover:bg-slate-900'
-                }`}>
-                  <Sparkles className="w-4 h-4 text-indigo-600" />
-                </div>
-              </div>
-              {!isCollapsed && (
-                <div>
-                  <h1 className={`text-sm font-extrabold tracking-tight leading-none ${
-                    isLight ? 'text-slate-900' : 'text-white'
-                  }`}>Launchpad AI</h1>
-                  <span className="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">Enterprise Studio</span>
-                </div>
-              )}
-            </div>
+              <Sparkles className="h-5 w-5" />
+            </span>
+            {!collapsed && (
+              <span className="min-w-0">
+                <span className="block truncate text-base font-extrabold leading-tight">Launchpad AI</span>
+                <span className="block text-2xs font-semibold text-ink-subtle">Enterprise Studio</span>
+              </span>
+            )}
+          </a>
+          <button
+            type="button"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-controls="main-navigation"
+            aria-expanded={!isCollapsed}
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="hidden h-9 w-9 place-items-center rounded-control border border-line text-ink-muted hover:bg-surface-muted hover:text-ink lg:grid"
+          >
+            {isCollapsed ? (
+              <ChevronsRight className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
+            )}
+          </button>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={() => setIsMobileOpen(false)}
+            className="flex h-9 items-center gap-1.5 rounded-control border border-line px-3 text-xs font-semibold text-ink-muted hover:bg-surface-muted lg:hidden"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+            Close menu
+          </button>
+        </div>
 
-            {/* Collapse Toggle Button (Desktop Only) */}
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className={`hidden lg:flex p-1.5 rounded-lg border transition-colors ${
-                isLight 
-                  ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600 hover:text-slate-900' 
-                  : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-400 hover:text-white'
-              }`}
-              title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+        {/* Workspace switcher */}
+        <div ref={wsRef} className="relative border-b border-line p-3">
+          {!collapsed && (
+            <p id="ws-label" className="mb-1.5 px-1 text-2xs font-bold uppercase tracking-wider text-ink-subtle">
+              Workspace
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => (collapsed ? setIsCollapsed(false) : setWsOpen(!wsOpen))}
+            aria-haspopup="listbox"
+            aria-expanded={wsOpen}
+            aria-label={collapsed ? `Workspace: ${currentWorkspace.name}. Expand sidebar to switch.` : undefined}
+            aria-describedby={collapsed ? undefined : 'ws-label'}
+            title={collapsed ? currentWorkspace.name : undefined}
+            data-testid="workspace-switcher"
+            className={`flex w-full items-center gap-2 rounded-control border border-line-strong bg-surface-muted text-left hover:border-brand-500 ${
+              collapsed ? 'h-10 justify-center' : 'px-3 py-2'
+            }`}
+          >
+            <span
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-brand-100 text-xs font-extrabold text-brand-800"
+              aria-hidden="true"
             >
-              {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </button>
-          </div>
-
-          {/* Workspace Switcher Selector */}
-          {!isCollapsed && (
-            <div className="relative">
-              <button
-                onClick={() => setIsWorkspaceDropdownOpen(!isWorkspaceDropdownOpen)}
-                className={`w-full border p-2.5 rounded-xl flex items-center justify-between text-xs transition-colors ${
-                  isLight 
-                    ? 'bg-slate-50 border-slate-200 hover:border-indigo-400 text-slate-900' 
-                    : 'bg-slate-900/90 border-slate-800 hover:border-indigo-500/50 text-slate-200'
-                }`}
-              >
-                <div className="flex items-center space-x-2 truncate">
-                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 shrink-0" />
-                  <span className="font-extrabold truncate">{currentWorkspace.name}</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <span className={`text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.2 rounded border ${
-                    isLight ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-indigo-950 text-indigo-300 border-indigo-800/60'
-                  }`}>
-                    {currentWorkspace.plan}
+              {currentWorkspace.name.slice(0, 1).toUpperCase()}
+            </span>
+            {!collapsed && (
+              <>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-bold">{currentWorkspace.name}</span>
+                  <span className="block text-2xs font-semibold uppercase text-ink-subtle">
+                    {currentWorkspace.plan} plan
                   </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-              </button>
-
-              {/* Workspace Dropdown Menu */}
-              {isWorkspaceDropdownOpen && (
-                <div className={`absolute left-0 right-0 mt-1.5 border rounded-xl shadow-2xl py-1 z-50 text-xs ${
-                  isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200'
-                }`}>
-                  <div className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border-b ${
-                    isLight ? 'text-slate-400 border-slate-100' : 'text-slate-500 border-slate-800'
-                  }`}>
-                    Switch Workspace
-                  </div>
-                  {workspaces.map((ws) => (
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden="true" />
+              </>
+            )}
+          </button>
+          {wsOpen && !collapsed && (
+            <ul
+              role="listbox"
+              aria-label="Switch workspace"
+              className="absolute left-3 right-3 z-50 mt-1.5 overflow-hidden rounded-control border border-line bg-surface py-1 shadow-popover"
+            >
+              {workspaces.map((ws) => {
+                const selected = ws.id === currentWorkspace.id;
+                return (
+                  <li key={ws.id} role="option" aria-selected={selected}>
                     <button
-                      key={ws.id}
+                      type="button"
                       onClick={() => {
                         onSelectWorkspace(ws.id);
-                        setIsWorkspaceDropdownOpen(false);
+                        setWsOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-2 flex items-center justify-between transition-colors ${
-                        ws.id === currentWorkspace.id 
-                          ? isLight ? 'bg-indigo-50 text-indigo-700 font-bold' : 'bg-indigo-950/60 text-indigo-300 font-bold'
-                          : isLight ? 'hover:bg-slate-50 text-slate-700' : 'hover:bg-slate-800 text-slate-300'
+                      className={`flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm ${
+                        selected
+                          ? 'bg-brand-50 font-bold text-brand-800 dark:bg-brand-900/40 dark:text-brand-100'
+                          : 'hover:bg-surface-muted'
                       }`}
                     >
                       <span className="truncate">{ws.name}</span>
-                      {ws.id === currentWorkspace.id && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />}
+                      {selected && <Check className="h-4 w-4 shrink-0" aria-hidden="true" />}
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
 
-        {/* Middle Scrollable Nav Items */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 custom-scrollbar">
-          {navGroups.map((group, groupIdx) => (
-            <div key={groupIdx} className="space-y-1.5">
-              {!isCollapsed && (
-                <div className={`px-2 text-[10px] font-extrabold uppercase tracking-wider ${
-                  isLight ? 'text-slate-400' : 'text-slate-500'
-                }`}>
-                  {group.groupTitle}
-                </div>
-              )}
-
-              <div className="space-y-1">
-                {group.items.map((item) => {
-                  const isActive = activeTab === item.id;
-
+        {/* Sections */}
+        <nav aria-label="Main" className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.id} role="group" aria-labelledby={`nav-${section.id}`}>
+              <h2
+                id={`nav-${section.id}`}
+                className={`mb-1.5 px-2 text-2xs font-bold uppercase tracking-wider text-ink-subtle ${collapsed ? 'sr-only' : ''}`}
+              >
+                {section.title}
+              </h2>
+              <ul className="space-y-0.5">
+                {section.items.map((item) => {
+                  const active = item.id === activeTab;
+                  const Icon = item.icon;
                   return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        setActiveTab(item.id);
-                        setIsMobileOpen(false);
-                      }}
-                      title={isCollapsed ? item.label : undefined}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all relative group ${
-                        isActive
-                          ? isLight
-                            ? 'bg-indigo-50 text-indigo-900 border border-indigo-200 shadow-sm font-bold'
-                            : 'bg-gradient-to-r from-indigo-900/60 to-purple-900/40 text-white border border-indigo-500/50 shadow-md shadow-indigo-950/30'
-                          : isLight
-                            ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/80'
-                      }`}
-                    >
-                      {/* Active Left Indicator Bar */}
-                      {isActive && (
-                        <span className="absolute left-0 top-2 bottom-2 w-1 bg-indigo-600 rounded-r-full" />
-                      )}
-
-                      <div className="flex items-center space-x-3 truncate">
-                        <span className="shrink-0">{item.icon}</span>
-                        {!isCollapsed && <span className="truncate">{item.label}</span>}
-                      </div>
-
-                      {!isCollapsed && item.badge && (
-                        <span className={`text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.2 rounded border ${
-                          isLight 
-                            ? 'bg-slate-100 text-indigo-700 border-slate-200' 
-                            : 'bg-slate-900 text-indigo-300 border-slate-800'
-                        }`}>
-                          {item.badge}
-                        </span>
-                      )}
-                    </button>
+                    <li key={item.id}>
+                      <a
+                        href={`#/${item.id}`}
+                        onClick={go(item.id)}
+                        aria-current={active ? 'page' : undefined}
+                        aria-label={collapsed ? item.label : undefined}
+                        title={collapsed ? item.label : undefined}
+                        data-nav={item.id}
+                        className={`relative flex items-center gap-3 rounded-control px-3 py-2 text-sm transition-colors ${
+                          collapsed ? 'justify-center' : ''
+                        } ${
+                          active
+                            ? 'bg-brand-50 font-bold text-brand-800 dark:bg-brand-900/50 dark:text-white'
+                            : 'font-medium text-ink-muted hover:bg-surface-muted hover:text-ink'
+                        }`}
+                      >
+                        {active && (
+                          <span
+                            className="absolute inset-y-1.5 left-0 w-1 rounded-r-full bg-brand-600"
+                            aria-hidden="true"
+                          />
+                        )}
+                        <Icon
+                          className={`h-[18px] w-[18px] shrink-0 ${active ? 'text-brand-600 dark:text-brand-300' : ''}`}
+                          aria-hidden="true"
+                        />
+                        {!collapsed && <span className="truncate">{item.label}</span>}
+                        {!collapsed && item.badge && (
+                          <span className="ml-auto rounded-full bg-brand-100 px-2 py-0.5 text-2xs font-bold text-brand-800">
+                            {item.badge}
+                          </span>
+                        )}
+                      </a>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             </div>
           ))}
-        </div>
+        </nav>
 
-        {/* Bottom Credits & Quick Actions Section */}
-        <div className={`p-3 border-t space-y-3 ${
-          isLight ? 'border-slate-100 bg-slate-50/50' : 'border-slate-900 bg-slate-950/80'
-        }`}>
-          {/* AI Credits Meter */}
-          {!isCollapsed ? (
-            <div className={`p-3 rounded-2xl border space-y-2 ${
-              isLight ? 'bg-white border-slate-200' : 'bg-slate-900/90 border-slate-800/80'
-            }`}>
-              <div className="flex items-center justify-between text-xs">
-                <span className={`font-bold flex items-center space-x-1 ${
-                  isLight ? 'text-slate-600' : 'text-slate-400'
-                }`}>
-                  <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                  <span>AI Credits</span>
+        {/* Credits */}
+        <div className="space-y-3 border-t border-line p-3">
+          {collapsed ? (
+            <button
+              type="button"
+              onClick={onOpenTopUp}
+              aria-label={`${currentWorkspace.creditsRemaining.toLocaleString()} AI credits left. Top up credits`}
+              title="Top up credits"
+              className="grid h-10 w-full place-items-center rounded-control border border-amber-300 bg-warning-50 text-warning-800"
+            >
+              <Zap className="h-4 w-4" aria-hidden="true" />
+            </button>
+          ) : (
+            <div className="space-y-2 rounded-card border border-line bg-surface-muted p-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-1.5 font-semibold text-ink-muted">
+                  <Zap className="h-4 w-4 text-amber-600" aria-hidden="true" />
+                  AI credits
                 </span>
-                <span className={`font-mono font-extrabold ${isLight ? 'text-amber-700' : 'text-amber-300'}`}>{currentWorkspace.credits}</span>
+                <span className="font-mono font-bold text-ink" data-testid="sidebar-credits">
+                  {currentWorkspace.creditsRemaining.toLocaleString()}
+                </span>
               </div>
-
-              {/* Progress Bar */}
-              <div className={`w-full h-1.5 rounded-full overflow-hidden border ${
-                isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'
-              }`}>
-                <div
-                  className="bg-gradient-to-r from-amber-500 to-indigo-600 h-full rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (currentWorkspace.credits / 1000) * 100)}%` }}
-                />
-              </div>
-
-              <button
-                onClick={onOpenTopUp}
-                className={`w-full border text-[11px] font-extrabold py-1.5 rounded-xl transition-all flex items-center justify-center space-x-1 ${
-                  isLight
-                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
-                    : 'bg-slate-950 hover:bg-slate-800 text-amber-300 border-amber-800/60 hover:border-amber-500'
-                }`}
+              <div
+                role="progressbar"
+                aria-label="Credits remaining"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(pct)}
+                className="h-2 w-full overflow-hidden rounded-full bg-line"
               >
-                <PlusCircle className="w-3 h-3 text-amber-500" />
-                <span>TOP UP CREDITS</span>
+                <div className="h-full rounded-full bg-brand-600" style={{ width: `${pct}%` }} />
+              </div>
+              <button
+                type="button"
+                onClick={onOpenTopUp}
+                className="flex h-9 w-full items-center justify-center gap-1.5 rounded-control border border-line-strong bg-surface text-xs font-semibold text-ink hover:bg-surface-muted"
+              >
+                <PlusCircle className="h-4 w-4" aria-hidden="true" />
+                Top up credits
               </button>
             </div>
-          ) : (
-            <button
-              onClick={onOpenTopUp}
-              className={`w-full py-2.5 rounded-xl border flex items-center justify-center ${
-                isLight ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-amber-950/80 border-amber-800 text-amber-300'
-              }`}
-              title="Top Up Credits"
-            >
-              <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
-            </button>
           )}
-
-          {/* Dark Mode Toggle Button */}
-          {onToggleTheme && (
-            !isCollapsed ? (
-              <button
-                onClick={onToggleTheme}
-                className={`w-full py-2 px-3 rounded-xl border flex items-center justify-between text-xs font-semibold transition-all ${
-                  isLight
-                    ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
-                    : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300'
-                }`}
-              >
-                <span className="flex items-center space-x-2">
-                  {isLight ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-400" />}
-                  <span>{isLight ? 'Light Mode' : 'Dark Mode'}</span>
-                </span>
-                <span className="text-[10px] font-mono uppercase font-bold text-indigo-500">
-                  {isLight ? 'Switch to Dark' : 'Switch to Light'}
-                </span>
-              </button>
-            ) : (
-              <button
-                onClick={onToggleTheme}
-                className={`w-full py-2.5 rounded-xl border flex items-center justify-center transition-all ${
-                  isLight
-                    ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
-                    : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300'
-                }`}
-                title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-              >
-                {isLight ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-400" />}
-              </button>
-            )
-          )}
-
-          {/* Quick Create Action Button */}
-          {!isCollapsed ? (
-            <button
-              onClick={() => setActiveTab('studio')}
-              className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:to-pink-700 text-white font-extrabold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-2 shadow-md shadow-indigo-600/20 transition-all"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>CREATE NEW ASSET</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setActiveTab('studio')}
-              className="w-full py-2.5 rounded-xl bg-indigo-600 text-white flex items-center justify-center"
-              title="Create New Asset"
-            >
-              <Sparkles className="w-4 h-4" />
-            </button>
-          )}
+          {mobileFooter && <div className="space-y-2 lg:hidden">{mobileFooter}</div>}
         </div>
       </aside>
 
-      {/* Mobile Drawer Overlay Backdrop */}
       {isMobileOpen && (
         <div
+          aria-hidden="true"
           onClick={() => setIsMobileOpen(false)}
-          className="lg:hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-30"
+          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden"
         />
       )}
     </>

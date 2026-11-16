@@ -1,32 +1,29 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../lib/api';
+import { SafeImg } from './ui/SafeImg';
+import { TeamInvites } from './TeamInvites';
 import { Workspace, WorkspaceRole } from '../types';
-import { 
-  Users, 
-  ShieldCheck, 
-  Lock, 
-  CheckCircle2, 
-  AlertCircle, 
-  UserPlus, 
-  Layers, 
-  Globe, 
-  Activity,
-  Key
-} from 'lucide-react';
+import { Users, ShieldCheck, Lock, CheckCircle2, Key } from 'lucide-react';
 
 interface WorkspacePresenceProps {
   currentWorkspace: Workspace;
+  /** Signed-in user's id (undefined in demo mode). */
+  currentUserId?: string;
   onUpdateMemberRole: (memberId: string, role: WorkspaceRole) => void;
 }
 
 export const WorkspacePresence: React.FC<WorkspacePresenceProps> = ({
   currentWorkspace,
+  currentUserId,
   onUpdateMemberRole,
 }) => {
+  const myRole = currentWorkspace.members.find((m) => m.id === currentUserId)?.role;
+  const canInvite = Boolean(currentUserId) && (myRole === 'owner' || myRole === 'admin');
   const [tenantIsolatedTestResult, setTenantIsolatedTestResult] = useState<string | null>(null);
 
   const handleTestTenantIsolation = async () => {
     try {
-      const res = await fetch(`/api/features/multi_tenant_isolation`, {
+      const res = await apiFetch(`/api/features/multi_tenant_isolation`, {
         headers: {
           'x-workspace-id': currentWorkspace.id,
         },
@@ -37,8 +34,8 @@ export const WorkspacePresence: React.FC<WorkspacePresenceProps> = ({
       } else {
         setTenantIsolatedTestResult(`ERROR: Tenant header rejected.`);
       }
-    } catch (err) {
-      setTenantIsolatedTestResult(`SUCCESS: Simulated local isolated context for workspace '${currentWorkspace.id}'.`);
+    } catch {
+      setTenantIsolatedTestResult('Could not reach the server to check the workspace header.');
     }
   };
 
@@ -48,16 +45,13 @@ export const WorkspacePresence: React.FC<WorkspacePresenceProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="p-2 rounded-xl bg-indigo-950 text-indigo-400 border border-indigo-800/60">
-              <Users className="w-5 h-5" />
-            </span>
-            <h1 className="text-2xl font-extrabold text-white">Team Collaboration & Workspace RBAC</h1>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800/60">
               Strict Tenant Boundaries
             </span>
           </div>
-          <p className="text-slate-400 text-xs mt-1">
-            Realtime member presence tracking, role-based access control (RBAC), and tenant isolation enforcement.
+          <p className="text-sm text-ink-muted">
+            Members, roles and invitations. Roles are enforced by the server on every request. Online status is not
+            tracked yet.
           </p>
         </div>
 
@@ -76,35 +70,50 @@ export const WorkspacePresence: React.FC<WorkspacePresenceProps> = ({
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             <span>{tenantIsolatedTestResult}</span>
           </div>
-          <button onClick={() => setTenantIsolatedTestResult(null)} className="text-slate-400 hover:text-white text-xs">Dismiss</button>
+          <button onClick={() => setTenantIsolatedTestResult(null)} className="text-slate-400 hover:text-white text-xs">
+            Dismiss
+          </button>
         </div>
       )}
 
       {/* Workspace Member Roster Grid */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <h3 className="text-base font-bold text-white flex items-center space-x-2">
-            <Users className="w-4 h-4 text-indigo-400" />
-            <span>Active Team Members in {currentWorkspace.name} ({currentWorkspace.members.length})</span>
+            <Users className="w-4 h-4 text-indigo-300" />
+            <span>
+              Active Team Members in {currentWorkspace.name} ({currentWorkspace.members.length})
+            </span>
           </h3>
-          <span className="text-xs text-slate-400">Plan: <strong className="text-slate-200 uppercase">{currentWorkspace.plan}</strong></span>
+          <span className="text-xs text-slate-400">
+            Plan: <strong className="text-slate-200 uppercase">{currentWorkspace.plan}</strong>
+          </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {currentWorkspace.members.map((member) => (
-            <div key={member.id} className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 flex items-center justify-between space-x-4">
+            <div
+              key={member.id}
+              className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 flex items-center justify-between space-x-4"
+            >
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <img src={member.avatar} alt={member.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-800" />
-                  <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-slate-950 ${
-                    member.status === 'active' ? 'bg-emerald-400' : 'bg-amber-400'
-                  }`} />
+                  <SafeImg
+                    src={member.avatar}
+                    alt={member.name}
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-800"
+                  />
+                  <span
+                    className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-slate-950 ${
+                      member.status === 'active' ? 'bg-emerald-400' : 'bg-amber-400'
+                    }`}
+                  />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white">{member.name}</h4>
-                  <p className="text-[11px] text-slate-400">{member.email}</p>
+                  <p className="text-2xs text-slate-400">{member.email}</p>
                   {member.currentEditingAssetId && (
-                    <span className="text-[10px] text-amber-400 font-medium flex items-center space-x-1 mt-0.5">
+                    <span className="text-2xs text-amber-400 font-medium flex items-center space-x-1 mt-0.5">
                       <Lock className="w-3 h-3" />
                       <span>Reviewing Asset #{member.currentEditingAssetId}</span>
                     </span>
@@ -114,6 +123,7 @@ export const WorkspacePresence: React.FC<WorkspacePresenceProps> = ({
 
               {/* Role Select */}
               <select
+                aria-label={`Role for ${member.name}`}
                 value={member.role}
                 onChange={(e) => onUpdateMemberRole(member.id, e.target.value as WorkspaceRole)}
                 className="bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 font-medium focus:border-indigo-500 outline-none"
@@ -129,16 +139,30 @@ export const WorkspacePresence: React.FC<WorkspacePresenceProps> = ({
         </div>
       </div>
 
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <h3 className="text-base font-bold text-white">Invite people</h3>
+        {currentUserId ? (
+          <TeamInvites workspaceId={currentWorkspace.id} canInvite={canInvite} />
+        ) : (
+          <p className="text-sm text-slate-300">Invitations need a signed-in account (not available in the demo).</p>
+        )}
+      </div>
+
       {/* RBAC Matrix Reference Table */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-white flex items-center space-x-2">
           <Key className="w-4 h-4 text-purple-400" />
           <span>Role-Based Access Control (RBAC) Matrix</span>
         </h3>
 
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          tabIndex={0}
+          role="region"
+          aria-label="Role permissions table (scrolls sideways)"
+        >
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950 text-slate-400 text-[10px] font-bold uppercase">
+            <thead className="bg-slate-950 text-slate-400 text-2xs font-bold uppercase">
               <tr>
                 <th className="p-3">Capability</th>
                 <th className="p-3 text-center">Owner</th>

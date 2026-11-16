@@ -1,23 +1,19 @@
 import React, { useState } from 'react';
-import { 
-  X, 
-  Mail, 
-  Lock, 
-  User as UserIcon, 
-  Eye, 
-  EyeOff, 
-  ShieldCheck, 
-  AlertCircle, 
-  CheckCircle2, 
+import { Dialog } from '../ui/Dialog';
+import {
+  X,
+  Mail,
+  Lock,
+  User as UserIcon,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  AlertCircle,
+  CheckCircle2,
   ArrowRight,
-  RefreshCw
+  RefreshCw,
 } from 'lucide-react';
-import { 
-  signInWithGoogle, 
-  signInWithEmail, 
-  signUpWithEmail, 
-  resetPasswordEmail 
-} from '../../lib/firebase';
+import { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPasswordEmail } from '../../lib/auth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -30,7 +26,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   initialMode = 'signin',
-  themeMode = 'light'
+  themeMode = 'light',
 }) => {
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>(initialMode);
   const [name, setName] = useState('');
@@ -38,7 +34,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -57,25 +53,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setMode(newMode);
   };
 
-  const mapFirebaseError = (err: any): string => {
-    const code = err?.code || '';
+  // Neon Auth (Better Auth) error codes.
+  const mapAuthError = (err: unknown): string => {
+    const { code = '', status = 0 } = (err as { code?: string; status?: number } | null) ?? {};
+    if (status === 429) return 'Too many attempts. Please wait a few minutes or reset your password.';
+    if (status === 401 && mode === 'signin') return 'Incorrect email or password. Please check your credentials.';
     switch (code) {
-      case 'auth/email-already-in-use':
+      case 'USER_ALREADY_EXISTS':
+      case 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL':
         return 'An account with this email already exists. Please sign in instead.';
-      case 'auth/invalid-email':
+      case 'INVALID_EMAIL':
         return 'Please enter a valid email address.';
-      case 'auth/user-not-found':
-      case 'auth/wrong-password':
-      case 'auth/invalid-credential':
+      case 'INVALID_EMAIL_OR_PASSWORD':
+      case 'INVALID_PASSWORD':
+      case 'USER_NOT_FOUND':
         return 'Incorrect email or password. Please check your credentials.';
-      case 'auth/weak-password':
-        return 'Password is too weak. Please use at least 6 characters.';
-      case 'auth/popup-closed-by-user':
-        return 'Google Sign-In was cancelled.';
-      case 'auth/too-many-requests':
-        return 'Too many failed login attempts. Please wait a few minutes or reset your password.';
+      case 'PASSWORD_TOO_SHORT':
+        return 'Password is too short. Please use at least 8 characters.';
+      case 'EMAIL_NOT_VERIFIED':
+        return 'Please verify your email address first (check your inbox), then sign in.';
+      case 'NOT_CONFIGURED':
+        return 'Sign-in is not configured for this deployment.';
       default:
-        return err?.message || 'Authentication failed. Please try again.';
+        return (err as { message?: string } | null)?.message || 'Authentication failed. Please try again.';
     }
   };
 
@@ -94,7 +94,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         await resetPasswordEmail(email.trim());
         setSuccessMsg('Password reset instructions sent! Check your inbox.');
       } catch (err) {
-        setError(mapFirebaseError(err));
+        setError(mapAuthError(err));
       } finally {
         setLoading(false);
       }
@@ -107,8 +107,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     if (mode === 'signup') {
-      if (password.length < 6) {
-        setError('Password must be at least 6 characters long.');
+      if (password.length < 8) {
+        setError('Password must be at least 8 characters long.');
         return;
       }
       if (password !== confirmPassword) {
@@ -123,7 +123,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           onClose();
         }, 1200);
       } catch (err) {
-        setError(mapFirebaseError(err));
+        setError(mapAuthError(err));
       } finally {
         setLoading(false);
       }
@@ -137,7 +137,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           onClose();
         }, 800);
       } catch (err) {
-        setError(mapFirebaseError(err));
+        setError(mapAuthError(err));
       } finally {
         setLoading(false);
       }
@@ -148,34 +148,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     resetFormState();
     try {
       setLoading(true);
+      // Redirects to Google and back; the session is picked up when the page reloads.
       await signInWithGoogle();
-      setSuccessMsg('Signed in with Google!');
-      setTimeout(() => {
-        onClose();
-      }, 800);
+      setSuccessMsg('Redirecting to Google…');
     } catch (err) {
-      setError(mapFirebaseError(err));
+      setError(mapAuthError(err));
     } finally {
       setLoading(false);
     }
   };
 
   // Password strength helper
-  const hasMinLength = password.length >= 6;
+  const hasMinLength = password.length >= 8;
   const hasNumber = /\d/.test(password);
   const hasUpper = /[A-Z]/.test(password);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
-      <div 
+    <Dialog
+      onClose={onClose}
+      label="Sign in or create an account"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn"
+    >
+      <div
         className={`relative w-full max-w-md rounded-2xl border shadow-2xl overflow-hidden transition-all ${
           isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
         }`}
       >
         {/* Header Bar */}
-        <div className={`p-6 border-b flex items-center justify-between ${
-          isLight ? 'border-slate-100 bg-slate-50/50' : 'border-slate-800 bg-slate-950/40'
-        }`}>
+        <div
+          className={`p-6 border-b flex items-center justify-between ${
+            isLight ? 'border-slate-100 bg-slate-50/50' : 'border-slate-800 bg-slate-950'
+          }`}
+        >
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
               <ShieldCheck className="w-5 h-5" />
@@ -186,7 +190,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 {mode === 'signup' && 'Create Your Account'}
                 {mode === 'forgot' && 'Reset Password'}
               </h3>
-              <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                 {mode === 'signin' && 'Enter your credentials to access content workflows.'}
                 {mode === 'signup' && 'Join thousands of creators automating short-form video.'}
                 {mode === 'forgot' && 'We will send a password reset link to your email.'}
@@ -196,8 +200,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             onClick={onClose}
             className={`p-1.5 rounded-lg transition-colors ${
-              isLight ? 'text-slate-400 hover:text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              isLight
+                ? 'text-slate-600 hover:text-slate-600 hover:bg-slate-100'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
+            aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -205,15 +212,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Tab Selector (SignIn vs SignUp) */}
         {mode !== 'forgot' && (
-          <div className={`grid grid-cols-2 p-1.5 mx-6 mt-6 rounded-xl border text-xs font-semibold ${
-            isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'
-          }`}>
+          <div
+            className={`grid grid-cols-2 p-1.5 mx-6 mt-6 rounded-xl border text-xs font-semibold ${
+              isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'
+            }`}
+          >
             <button
               onClick={() => handleSwitchMode('signin')}
               className={`py-2 rounded-lg transition-all ${
                 mode === 'signin'
-                  ? isLight ? 'bg-white text-slate-900 shadow-sm font-bold' : 'bg-slate-800 text-white shadow-sm font-bold'
-                  : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
+                  ? isLight
+                    ? 'bg-white text-slate-900 shadow-sm font-bold'
+                    : 'bg-slate-800 text-white shadow-sm font-bold'
+                  : isLight
+                    ? 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-400 hover:text-white'
               }`}
             >
               Sign In
@@ -222,8 +235,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               onClick={() => handleSwitchMode('signup')}
               className={`py-2 rounded-lg transition-all ${
                 mode === 'signup'
-                  ? isLight ? 'bg-white text-slate-900 shadow-sm font-bold' : 'bg-slate-800 text-white shadow-sm font-bold'
-                  : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
+                  ? isLight
+                    ? 'bg-white text-slate-900 shadow-sm font-bold'
+                    : 'bg-slate-800 text-white shadow-sm font-bold'
+                  : isLight
+                    ? 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-400 hover:text-white'
               }`}
             >
               Register Account
@@ -240,7 +257,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           )}
           {successMsg && (
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 text-xs flex items-start space-x-2">
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-xs flex items-start space-x-2">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span>{successMsg}</span>
             </div>
@@ -254,7 +271,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   Full Name
                 </label>
                 <div className="relative">
-                  <UserIcon className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-400' : 'text-slate-500'}`} />
+                  <UserIcon
+                    className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-600' : 'text-slate-500'}`}
+                  />
                   <input
                     type="text"
                     required
@@ -262,8 +281,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Alex Rivera"
                     className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-xs transition-all outline-none ${
-                      isLight 
-                        ? 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-indigo-500' 
+                      isLight
+                        ? 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-indigo-500'
                         : 'bg-slate-950 border-slate-800 text-white focus:border-indigo-500'
                     }`}
                   />
@@ -276,7 +295,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 Email Address
               </label>
               <div className="relative">
-                <Mail className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-400' : 'text-slate-500'}`} />
+                <Mail className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-600' : 'text-slate-500'}`} />
                 <input
                   type="email"
                   required
@@ -284,8 +303,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
                   className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-xs transition-all outline-none ${
-                    isLight 
-                      ? 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-indigo-500' 
+                    isLight
+                      ? 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-indigo-500'
                       : 'bg-slate-950 border-slate-800 text-white focus:border-indigo-500'
                   }`}
                 />
@@ -302,14 +321,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleSwitchMode('forgot')}
-                      className="text-[11px] text-indigo-600 hover:underline font-medium"
+                      className="text-2xs text-indigo-600 hover:underline font-medium"
                     >
                       Forgot password?
                     </button>
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-400' : 'text-slate-500'}`} />
+                  <Lock className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-600' : 'text-slate-500'}`} />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
@@ -317,15 +336,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
                     className={`w-full pl-9 pr-10 py-2.5 rounded-xl border text-xs transition-all outline-none ${
-                      isLight 
-                        ? 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-indigo-500' 
+                      isLight
+                        ? 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-indigo-500'
                         : 'bg-slate-950 border-slate-800 text-white focus:border-indigo-500'
                     }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className={`absolute right-3 top-3 p-0.5 ${isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                    className={`absolute right-3 top-3 p-0.5 ${isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}`}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -340,7 +362,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     Confirm Password
                   </label>
                   <div className="relative">
-                    <Lock className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-400' : 'text-slate-500'}`} />
+                    <Lock
+                      className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-600' : 'text-slate-500'}`}
+                    />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
@@ -348,8 +372,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••••••"
                       className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-xs transition-all outline-none ${
-                        isLight 
-                          ? 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-indigo-500' 
+                        isLight
+                          ? 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-indigo-500'
                           : 'bg-slate-950 border-slate-800 text-white focus:border-indigo-500'
                       }`}
                     />
@@ -357,16 +381,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
 
                 {/* Password strength checklist */}
-                <div className="pt-1 flex items-center space-x-3 text-[10px] text-slate-500 font-medium">
-                  <span className={`flex items-center space-x-1 ${hasMinLength ? 'text-emerald-600 font-bold' : ''}`}>
+                <div className="pt-1 flex items-center space-x-3 text-2xs text-ink-subtle font-medium">
+                  <span className={`flex items-center space-x-1 ${hasMinLength ? 'text-emerald-700 font-bold' : ''}`}>
                     <CheckCircle2 className="w-3 h-3" />
-                    <span>Min 6 chars</span>
+                    <span>Min 8 chars</span>
                   </span>
-                  <span className={`flex items-center space-x-1 ${hasUpper ? 'text-emerald-600 font-bold' : ''}`}>
+                  <span className={`flex items-center space-x-1 ${hasUpper ? 'text-emerald-700 font-bold' : ''}`}>
                     <CheckCircle2 className="w-3 h-3" />
                     <span>Uppercase</span>
                   </span>
-                  <span className={`flex items-center space-x-1 ${hasNumber ? 'text-emerald-600 font-bold' : ''}`}>
+                  <span className={`flex items-center space-x-1 ${hasNumber ? 'text-emerald-700 font-bold' : ''}`}>
                     <CheckCircle2 className="w-3 h-3" />
                     <span>Number</span>
                   </span>
@@ -406,9 +430,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div className="space-y-3 pt-2">
               <div className="relative flex items-center justify-center">
                 <div className={`w-full border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}`} />
-                <span className={`absolute px-3 text-[10px] uppercase font-bold tracking-wider ${
-                  isLight ? 'bg-white text-slate-400' : 'bg-slate-900 text-slate-500'
-                }`}>
+                <span
+                  className={`absolute px-3 text-2xs uppercase font-bold tracking-wider ${
+                    isLight ? 'bg-white text-slate-600' : 'bg-slate-900 text-slate-500'
+                  }`}
+                >
                   Or continue with
                 </span>
               </div>
@@ -460,6 +486,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 };

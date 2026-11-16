@@ -1,29 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { SafeImg } from './ui/SafeImg';
 import { Workspace, CampaignAsset, Platform } from '../types';
-import { 
-  MessageSquare, 
-  Sparkles, 
-  CheckCircle2, 
-  Edit3, 
-  Send, 
-  RefreshCw, 
-  Zap, 
-  ThumbsUp, 
-  HelpCircle, 
-  AlertCircle, 
-  Linkedin, 
-  Instagram, 
-  Twitter, 
-  Facebook, 
-  Video, 
-  User, 
-  Bot, 
-  Clock, 
+import {
+  Sparkles,
+  CheckCircle2,
+  Edit3,
+  Send,
+  RefreshCw,
+  ThumbsUp,
+  HelpCircle,
+  AlertCircle,
+  Linkedin,
+  Instagram,
+  Twitter,
+  Facebook,
+  Video,
+  Bot,
   Settings2,
   Check,
   ShieldCheck,
-  MessageCircle
+  MessageCircle,
 } from 'lucide-react';
+import { apiErrorMessage, apiJson } from '../lib/api';
 
 export interface PostComment {
   id: string;
@@ -47,11 +45,7 @@ interface SmartEngagementProps {
   onReplyAdded?: (assetId: string, commentId: string, replyText: string) => void;
 }
 
-export const SmartEngagement: React.FC<SmartEngagementProps> = ({
-  currentWorkspace,
-  assets,
-  onReplyAdded,
-}) => {
+export const SmartEngagement: React.FC<SmartEngagementProps> = ({ currentWorkspace, onReplyAdded }) => {
   // Mock Inbound User Comments on Published Posts
   const [comments, setComments] = useState<PostComment[]>([
     {
@@ -62,7 +56,8 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
       authorName: 'Sarah Jenkins',
       authorHandle: '@sarahj_tech',
       authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-      commentText: 'This multi-agent orchestration setup looks insane! Does this integrate with existing Webhooks or Slack alerts for real-time approvals?',
+      commentText:
+        'This multi-agent orchestration setup looks insane! Does this integrate with existing Webhooks or Slack alerts for real-time approvals?',
       createdAt: '12 minutes ago',
       sentiment: 'question',
       status: 'pending',
@@ -101,7 +96,8 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
       authorName: 'David K. Miller',
       authorHandle: '@davekmiller',
       authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-      commentText: 'Great writeup on AI governance. Curious how you handle human-in-the-loop overrides for legal holds.',
+      commentText:
+        'Great writeup on AI governance. Curious how you handle human-in-the-loop overrides for legal holds.',
       createdAt: '3 hours ago',
       sentiment: 'constructive',
       status: 'pending',
@@ -111,9 +107,11 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
   const [selectedCommentId, setSelectedCommentId] = useState<string>('cmt-101');
   const [selectedBrandTone, setSelectedBrandTone] = useState<string>('Professional & Helpful');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  
+
   // AI Suggestions State
   const [suggestedReplies, setSuggestedReplies] = useState<string[]>([]);
+  const [replyError, setReplyError] = useState<string | null>(null);
+  const [replySource, setReplySource] = useState<string>('');
   const [selectedReplyIndex, setSelectedReplyIndex] = useState<number>(0);
   const [customEditingText, setCustomEditingText] = useState<string>('');
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -128,38 +126,27 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
   const handleGenerateReplies = async (comment: PostComment, tone: string) => {
     setIsGenerating(true);
     setIsEditing(false);
-    try {
-      const res = await fetch('/api/engagement/suggest-reply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          commentText: comment.commentText,
-          postCaption: comment.postTitle,
-          platform: comment.platform,
-          brandTone: tone,
-        }),
-      });
-      const data = await res.json();
-
-      if (data.success && Array.isArray(data.suggestedReplies) && data.suggestedReplies.length > 0) {
-        setSuggestedReplies(data.suggestedReplies);
-        setSelectedReplyIndex(0);
-        setCustomEditingText(data.suggestedReplies[0]);
-      } else {
-        // Fallback options
-        const fallbacks = [
-          `Hi ${comment.authorName.split(' ')[0]}! Thanks for the great question. Yes, we support real-time Webhook & Slack triggers directly in the settings panel.`,
-          `Great question ${comment.authorName.split(' ')[0]}! Our pipeline handles instant events with built-in SSRF protection. Feel free to check out our developer docs!`,
-          `Appreciate you reaching out! Our team would love to walk you through a live workflow setup.`,
-        ];
-        setSuggestedReplies(fallbacks);
-        setSelectedReplyIndex(0);
-        setCustomEditingText(fallbacks[0]);
-      }
-    } catch (err) {
-      console.error('Failed to generate replies:', err);
-    } finally {
-      setIsGenerating(false);
+    setReplyError(null);
+    const r = await apiJson<{ suggestedReplies?: string[]; source?: string }>('/api/engagement/suggest-reply', {
+      headers: { 'x-workspace-id': currentWorkspace.id },
+      json: {
+        commentText: comment.commentText,
+        postCaption: comment.postTitle,
+        platform: comment.platform,
+        brandTone: tone,
+      },
+    });
+    setIsGenerating(false);
+    if (r.ok && Array.isArray(r.data.suggestedReplies) && r.data.suggestedReplies.length > 0) {
+      setSuggestedReplies(r.data.suggestedReplies);
+      setReplySource(r.data.source || '');
+      setSelectedReplyIndex(0);
+      setCustomEditingText(r.data.suggestedReplies[0]);
+    } else {
+      // No canned replies on failure: show the error instead.
+      setSuggestedReplies([]);
+      setCustomEditingText('');
+      setReplyError(apiErrorMessage(r, 'Could not generate suggested replies.'));
     }
   };
 
@@ -167,6 +154,7 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
     if (selectedComment) {
       handleGenerateReplies(selectedComment, selectedBrandTone);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- regenerate only when the comment or tone changes
   }, [selectedCommentId, selectedBrandTone]);
 
   // Handle Select Variation
@@ -190,8 +178,8 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
               repliedText: textToSend,
               repliedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             }
-          : c
-      )
+          : c,
+      ),
     );
 
     if (onReplyAdded && selectedComment) {
@@ -220,7 +208,7 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
       case 'twitter':
         return <Twitter className="w-3.5 h-3.5 text-sky-400" />;
       case 'facebook':
-        return <Facebook className="w-3.5 h-3.5 text-indigo-400" />;
+        return <Facebook className="w-3.5 h-3.5 text-indigo-300" />;
       default:
         return <MessageCircle className="w-3.5 h-3.5 text-slate-400" />;
     }
@@ -231,25 +219,25 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
     switch (sentiment) {
       case 'positive':
         return (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center space-x-1">
+          <span className="text-2xs font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center space-x-1">
             <ThumbsUp className="w-2.5 h-2.5 mr-1" /> Praise & Positive
           </span>
         );
       case 'question':
         return (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800 flex items-center space-x-1">
+          <span className="text-2xs font-bold px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800 flex items-center space-x-1">
             <HelpCircle className="w-2.5 h-2.5 mr-1" /> Product Question
           </span>
         );
       case 'constructive':
         return (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 flex items-center space-x-1">
+          <span className="text-2xs font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 flex items-center space-x-1">
             <AlertCircle className="w-2.5 h-2.5 mr-1" /> Constructive Feedback
           </span>
         );
       default:
         return (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-800">
+          <span className="text-2xs font-bold px-2 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-800">
             Neutral
           </span>
         );
@@ -260,7 +248,7 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
   const repliedCount = comments.filter((c) => c.status === 'replied').length;
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-2xl relative overflow-hidden">
+    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-2xl relative overflow-hidden">
       {/* Header Banner */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
         <div className="flex items-center space-x-3.5">
@@ -270,12 +258,13 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
           <div>
             <div className="flex items-center space-x-2">
               <h2 className="text-xl font-extrabold text-white tracking-tight">Smart Engagement Assistant</h2>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800/60">
+              <span className="text-2xs font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800/60">
                 Human-in-the-Loop Auto-Replies
               </span>
             </div>
             <p className="text-slate-400 text-xs mt-0.5">
-              Review and approve AI-generated response suggestions for incoming social media comments across active channels.
+              Review and approve AI-generated response suggestions for incoming social media comments across active
+              channels.
             </p>
           </div>
         </div>
@@ -289,7 +278,7 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
               setNotification(
                 !autoPilotEnabled
                   ? 'Auto-Pilot Mode ON: Simple compliments will receive automated AI replies.'
-                  : 'Auto-Pilot Mode OFF: Manual approval required for all comments.'
+                  : 'Auto-Pilot Mode OFF: Manual approval required for all comments.',
               );
               setTimeout(() => setNotification(null), 3500);
             }}
@@ -309,32 +298,36 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
       {notification && (
         <div className="p-3.5 bg-indigo-950/90 border border-indigo-800 text-indigo-200 rounded-2xl text-xs flex items-center justify-between shadow-xl animate-fade-in">
           <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+            <CheckCircle2 className="w-4 h-4 text-indigo-300" />
             <span className="font-bold">{notification}</span>
           </div>
-          <span className="text-[10px] font-mono text-indigo-400">Live Feedback</span>
+          <span className="text-2xs font-mono text-indigo-300">Live Feedback</span>
         </div>
       )}
 
       {/* Top Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-        <div className="bg-slate-950/80 border border-slate-800/80 p-3.5 rounded-2xl space-y-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Inbox</span>
-          <p className="text-2xl font-extrabold text-amber-400 font-mono">{pendingCount} <span className="text-xs font-normal text-slate-500">comments</span></p>
+        <div className="bg-slate-950 border border-slate-800/80 p-3.5 rounded-2xl space-y-1">
+          <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider">Pending Inbox</span>
+          <p className="text-2xl font-extrabold text-amber-400 font-mono">
+            {pendingCount} <span className="text-xs font-normal text-slate-400">comments</span>
+          </p>
         </div>
 
-        <div className="bg-slate-950/80 border border-slate-800/80 p-3.5 rounded-2xl space-y-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Approved Replies</span>
-          <p className="text-2xl font-extrabold text-emerald-400 font-mono">{repliedCount} <span className="text-xs font-normal text-slate-500">sent</span></p>
+        <div className="bg-slate-950 border border-slate-800/80 p-3.5 rounded-2xl space-y-1">
+          <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider">Approved Replies</span>
+          <p className="text-2xl font-extrabold text-emerald-400 font-mono">
+            {repliedCount} <span className="text-xs font-normal text-slate-400">sent</span>
+          </p>
         </div>
 
-        <div className="bg-slate-950/80 border border-slate-800/80 p-3.5 rounded-2xl space-y-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg AI Response Speed</span>
+        <div className="bg-slate-950 border border-slate-800/80 p-3.5 rounded-2xl space-y-1">
+          <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider">Avg AI Response Speed</span>
           <p className="text-xl font-extrabold text-purple-400 font-mono">&lt; 1.8 seconds</p>
         </div>
 
-        <div className="bg-slate-950/80 border border-slate-800/80 p-3.5 rounded-2xl space-y-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Community Time Saved</span>
+        <div className="bg-slate-950 border border-slate-800/80 p-3.5 rounded-2xl space-y-1">
+          <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider">Community Time Saved</span>
           <p className="text-xl font-extrabold text-sky-400 font-mono">18.4 hrs / week</p>
         </div>
       </div>
@@ -348,7 +341,17 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
             <span>{comments.length} items</span>
           </div>
 
-          <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
+          <div
+            tabIndex={0}
+            role="region"
+            aria-label="Inbound comments"
+            className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1"
+          >
+            {comments.length === 0 && (
+              <p className="rounded-xl bg-slate-950 p-4 text-sm text-slate-300">
+                No comments yet. Comments on published posts appear here so you can draft replies.
+              </p>
+            )}
             {comments.map((cmt) => {
               const isSelected = cmt.id === selectedCommentId;
               const isReplied = cmt.status === 'replied';
@@ -361,42 +364,40 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
                     isSelected
                       ? 'bg-slate-950 border-purple-500/80 shadow-lg shadow-purple-950/20 ring-1 ring-purple-500/40'
                       : isReplied
-                      ? 'bg-slate-950/40 border-slate-800/60 opacity-70'
-                      : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
+                        ? 'bg-slate-950 border-slate-800/60 opacity-70'
+                        : 'bg-slate-950 border-slate-800 hover:border-slate-700'
                   }`}
                 >
                   {/* Top Bar: Author + Platform */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2.5">
-                      <img
+                      <SafeImg
                         src={cmt.authorAvatar}
                         alt={cmt.authorName}
                         className="w-7 h-7 rounded-full object-cover ring-2 ring-slate-800"
                       />
                       <div>
                         <h4 className="text-xs font-extrabold text-white leading-none">{cmt.authorName}</h4>
-                        <span className="text-[10px] text-slate-400 font-mono">{cmt.authorHandle}</span>
+                        <span className="text-2xs text-slate-400 font-mono">{cmt.authorHandle}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center space-x-1.5">
                       {renderPlatformIcon(cmt.platform)}
-                      <span className="text-[10px] text-slate-500">{cmt.createdAt}</span>
+                      <span className="text-2xs text-slate-400">{cmt.createdAt}</span>
                     </div>
                   </div>
 
                   {/* Post Context Title */}
-                  <div className="text-[10px] text-slate-400 truncate bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                  <div className="text-2xs text-slate-400 truncate bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
                     On post: <strong className="text-slate-200">{cmt.postTitle}</strong>
                   </div>
 
                   {/* Comment Text */}
-                  <p className="text-xs text-slate-200 leading-relaxed font-medium line-clamp-2">
-                    "{cmt.commentText}"
-                  </p>
+                  <p className="text-xs text-slate-200 leading-relaxed font-medium line-clamp-2">"{cmt.commentText}"</p>
 
                   {/* Footer Badge */}
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-800/60 text-[10px]">
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-800/60 text-2xs">
                     {renderSentimentBadge(cmt.sentiment)}
 
                     {isReplied ? (
@@ -419,10 +420,10 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
           {selectedComment ? (
             <div className="space-y-5">
               {/* Active Comment Detail Header */}
-              <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl space-y-3">
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <img
+                    <SafeImg
                       src={selectedComment.authorAvatar}
                       alt={selectedComment.authorName}
                       className="w-9 h-9 rounded-full object-cover ring-2 ring-purple-500/50"
@@ -452,24 +453,21 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
                 </span>
 
                 <div className="flex flex-wrap gap-1.5">
-                  {[
-                    'Professional & Helpful',
-                    'Friendly & Enthusiastic',
-                    'Witty & Modern',
-                    'Tech Expert & Direct',
-                  ].map((tone) => (
-                    <button
-                      key={tone}
-                      onClick={() => setSelectedBrandTone(tone)}
-                      className={`px-3 py-1 rounded-lg font-bold text-[11px] transition-all ${
-                        selectedBrandTone === tone
-                          ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                          : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-                      }`}
-                    >
-                      {tone}
-                    </button>
-                  ))}
+                  {['Professional & Helpful', 'Friendly & Enthusiastic', 'Witty & Modern', 'Tech Expert & Direct'].map(
+                    (tone) => (
+                      <button
+                        key={tone}
+                        onClick={() => setSelectedBrandTone(tone)}
+                        className={`px-3 py-1 rounded-lg font-bold text-2xs transition-all ${
+                          selectedBrandTone === tone
+                            ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                            : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                        }`}
+                      >
+                        {tone}
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
 
@@ -492,12 +490,26 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
                 </div>
 
                 {isGenerating ? (
-                  <div className="p-8 text-center bg-slate-900/60 rounded-2xl border border-slate-800 space-y-2">
+                  <div className="p-8 text-center bg-slate-900 rounded-2xl border border-slate-800 space-y-2">
                     <RefreshCw className="w-6 h-6 text-purple-400 animate-spin mx-auto" />
-                    <p className="text-xs text-slate-400 font-medium">Crafting tailored auto-replies matching brand tone...</p>
+                    <p className="text-xs text-slate-400 font-medium">
+                      Crafting tailored auto-replies matching brand tone...
+                    </p>
+                  </div>
+                ) : replyError ? (
+                  <div
+                    data-testid="reply-error"
+                    className="p-4 rounded-2xl border border-rose-800 bg-rose-950/60 text-xs text-rose-200"
+                  >
+                    {replyError}
                   </div>
                 ) : (
                   <div className="space-y-2.5">
+                    {replySource.startsWith('Demo') && (
+                      <p className="text-2xs font-semibold text-amber-300">
+                        {replySource}: template replies, not AI-generated.
+                      </p>
+                    )}
                     {suggestedReplies.map((replyText, idx) => (
                       <div
                         key={idx}
@@ -505,10 +517,10 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
                         className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-1.5 ${
                           selectedReplyIndex === idx && !isEditing
                             ? 'bg-purple-950/40 border-purple-500 text-white shadow-md ring-1 ring-purple-500/50'
-                            : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
+                            : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
                         }`}
                       >
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold">
+                        <div className="flex items-center justify-between text-2xs text-slate-400 font-bold">
                           <span>Option {idx + 1}</span>
                           {selectedReplyIndex === idx && !isEditing && (
                             <span className="text-purple-400 flex items-center space-x-1">
@@ -528,13 +540,13 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-slate-300 flex items-center space-x-1">
-                    <Edit3 className="w-3.5 h-3.5 text-indigo-400" />
+                    <Edit3 className="w-3.5 h-3.5 text-indigo-300" />
                     <span>Response Editor Preview</span>
                   </span>
 
                   <button
                     onClick={() => setIsEditing(!isEditing)}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-bold"
+                    className="text-xs text-indigo-300 hover:text-indigo-300 font-bold"
                   >
                     {isEditing ? 'Use Preset Variation' : 'Edit Text Directly'}
                   </button>
@@ -555,7 +567,7 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
               </div>
             </div>
           ) : (
-            <div className="py-20 text-center text-slate-500 text-xs">
+            <div className="py-20 text-center text-slate-400 text-xs">
               Select a user comment from the inbox to review AI suggestions.
             </div>
           )}
@@ -563,7 +575,7 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
           {/* Action Footer */}
           {selectedComment && selectedComment.status !== 'replied' && (
             <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
-              <span className="text-[11px] text-slate-500 font-medium">
+              <span className="text-2xs text-slate-400 font-medium">
                 Will post as <strong className="text-slate-300">Acme Community Bot</strong>
               </span>
 
@@ -580,7 +592,9 @@ export const SmartEngagement: React.FC<SmartEngagementProps> = ({
           {selectedComment && selectedComment.status === 'replied' && (
             <div className="p-3 bg-emerald-950/60 border border-emerald-800 rounded-xl text-emerald-300 text-xs flex items-center space-x-2 font-bold">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>Response dispatched on {selectedComment.platform.toUpperCase()} at {selectedComment.repliedAt}</span>
+              <span>
+                Response dispatched on {selectedComment.platform.toUpperCase()} at {selectedComment.repliedAt}
+              </span>
             </div>
           )}
         </div>

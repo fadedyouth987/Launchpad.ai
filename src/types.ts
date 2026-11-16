@@ -54,6 +54,8 @@ export interface CampaignAsset {
   decidedAt?: string;
   rejectionReason?: string;
   lockedBy?: string;
+  /** Generated image stored on the server (see AuthImage). */
+  imageId?: string;
   comments: {
     id: string;
     authorName: string;
@@ -67,7 +69,7 @@ export interface LedgerEntry {
   id: string;
   workspaceId: string;
   timestamp: string;
-  type: 'reservation' | 'deduction' | 'refund' | 'purchase' | 'topup';
+  type: 'reservation' | 'deduction' | 'refund' | 'purchase' | 'topup' | 'grant';
   description: string;
   amountCredits: number;
   resultingBalance: number;
@@ -80,7 +82,8 @@ export interface WebhookEndpoint {
   workspaceId: string;
   url: string;
   description: string;
-  secret: string;
+  /** Masked signing secret (e.g. whsec_…a1b2). The full secret is server-only and shown once at creation. */
+  secretPreview: string;
   events: string[];
   status: 'active' | 'suspended' | 'failing';
   lastDeliveryStatus?: number;
@@ -108,16 +111,6 @@ export interface AuditLog {
   details: string;
   ipAddress: string;
   securitySeverity: 'info' | 'warning' | 'critical';
-}
-
-export interface AuditCheckItem {
-  code: string;
-  severity: 'P0' | 'P1' | 'P2';
-  title: string;
-  category: 'Build & Imports' | 'Database & Schema' | 'Billing & Ledger' | 'Tenant Security' | 'SSRF & Webhooks' | 'Compliance';
-  description: string;
-  resolutionStatus: 'Resolved & Verified' | 'Pending Verification';
-  verifiedEndpoint?: string;
 }
 
 export interface InfluencerVoiceProfile {
@@ -152,4 +145,3 @@ export interface AIInfluencer {
   avgEngagementRate: string;
   createdAt: string;
 }
-
