@@ -14,7 +14,7 @@ This repo is the source of truth for what is live. If you deploy from anywhere e
 | Database | Neon project **`launchpad-ai`** (`odd-surf-26973335`, ap-southeast-1), migrations `001`–`003` applied | Yes |
 
 Deploy commands: `npm run deploy:web` (Cloudflare), `npm run deploy:api` (Neon),
-`npm run migrate` / `scripts/migrate.ts` (database). See `HOW_TO_RUN.md`.
+`npm run db:migrate` (database). See `HOW_TO_RUN.md`.
 
 ## Not in use — don't get these confused
 
