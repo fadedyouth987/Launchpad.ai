@@ -18,8 +18,10 @@ Deploy commands: `npm run deploy:web` (Cloudflare), `npm run deploy:api` (Neon),
 
 ## Not in use — don't get these confused
 
-- **Neon project `launchpad.AI`** (`lucky-paper-89514604`, ap-southeast-2): an older duplicate
-  with only `001_init.sql` applied. Not used by the live app. Retire it or bring it up to date.
+- **Neon project `launchpad.AI`** (`lucky-paper-89514604`, ap-southeast-2): a second copy, **not**
+  used by the live app. Brought up to date on 16 Nov 2026 (migrations `001`–`003`, schema identical
+  to `launchpad-ai`), so it can serve as a spare/staging database. Any new migration must be run on
+  both projects, or this one retired.
 - **Firebase / Google AI Studio version**: the original July 2026 prototype (Firestore,
   `firebase-applet-config.json`, etc.). Replaced on 16 Nov 2026 by the version above; it
   is still in git history (commit `7ac74f0`) if ever needed.
@@ -32,3 +34,4 @@ Deploy commands: `npm run deploy:web` (Cloudflare), `npm run deploy:api` (Neon),
 - 14 Nov 2026 — Firebase version reworked (not pushed).
 - 15 Nov 2026 — Rewritten for Cloudflare + Neon, deployed, migrations 001–003 applied (not pushed).
 - 16 Nov 2026 — Deployed 15 Nov code (`Launchpad.ai-fixed_2.zip`) committed here so GitHub matches live.
+- 16 Nov 2026 — Neon `launchpad.AI` brought up to date with migrations 002 and 003.
