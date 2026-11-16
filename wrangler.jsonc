@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Web app only (static assets, no Worker script). The Express API runs as a Neon Function.
+  // Build with `npm run build:web` (needs VITE_API_BASE_URL = the function URL), deploy with `npm run deploy:web`.
+  "name": "launchpad-web",
+  "compatibility_date": "2026-11-15",
+  "assets": {
+    "directory": "./dist/public",
+    // Client-side routes (e.g. /campaigns/x) get index.html with 200.
+    "not_found_handling": "single-page-application",
+  },
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {
+    "enabled": true,
+  },
+}

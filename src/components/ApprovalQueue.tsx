@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
+import { Dialog } from './ui/Dialog';
+import { SafeImg } from './ui/SafeImg';
 import { CampaignAsset, Workspace, AssetStatus } from '../types';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  Lock, 
-  MessageSquare, 
-  Send, 
-  AlertTriangle, 
-  UserCheck, 
-  Calendar, 
-  Filter, 
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Lock,
+  MessageSquare,
+  Send,
+  AlertTriangle,
+  UserCheck,
+  Calendar,
   CheckCheck,
   Linkedin,
   Instagram,
   Video,
   Twitter,
-  Facebook
+  Facebook,
 } from 'lucide-react';
 
 interface ApprovalQueueProps {
@@ -48,11 +49,16 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
 
   const selectedAsset = workspaceAssets.find((a) => a.id === selectedAssetId) || filteredAssets[0] || null;
 
-  const currentApprover = currentWorkspace.members.find((m) => m.role === 'approver' || m.role === 'owner') || currentWorkspace.members[0];
+  const currentApprover =
+    currentWorkspace.members.find((m) => m.role === 'approver' || m.role === 'owner') || currentWorkspace.members[0];
 
   const handleApprove = () => {
     if (!selectedAsset) return;
-    onUpdateAssetStatus(selectedAsset.id, 'approved', 'Approved after review. Scheduled for automated social dispatch.');
+    onUpdateAssetStatus(
+      selectedAsset.id,
+      'approved',
+      'Approved after review. Scheduled for automated social dispatch.',
+    );
   };
 
   const handleReject = () => {
@@ -70,26 +76,55 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
 
   const getPlatformIcon = (plat: string) => {
     switch (plat) {
-      case 'linkedin': return <Linkedin className="w-3.5 h-3.5 text-blue-400" />;
-      case 'instagram': return <Instagram className="w-3.5 h-3.5 text-pink-400" />;
-      case 'tiktok': return <Video className="w-3.5 h-3.5 text-teal-400" />;
-      case 'twitter': return <Twitter className="w-3.5 h-3.5 text-sky-400" />;
-      default: return <Facebook className="w-3.5 h-3.5 text-indigo-400" />;
+      case 'linkedin':
+        return <Linkedin className="w-3.5 h-3.5 text-blue-400" />;
+      case 'instagram':
+        return <Instagram className="w-3.5 h-3.5 text-pink-400" />;
+      case 'tiktok':
+        return <Video className="w-3.5 h-3.5 text-teal-400" />;
+      case 'twitter':
+        return <Twitter className="w-3.5 h-3.5 text-sky-400" />;
+      default:
+        return <Facebook className="w-3.5 h-3.5 text-indigo-300" />;
     }
   };
 
   const getStatusBadge = (status: AssetStatus) => {
     switch (status) {
       case 'approved':
-        return <span className="bg-emerald-950 text-emerald-300 border border-emerald-800/60 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1"><CheckCircle2 className="w-3 h-3" /><span>Approved</span></span>;
+        return (
+          <span className="bg-emerald-950 text-emerald-300 border border-emerald-800/60 text-2xs font-bold px-2 py-0.5 rounded-full flex items-center space-x-1">
+            <CheckCircle2 className="w-3 h-3" />
+            <span>Approved</span>
+          </span>
+        );
       case 'pending_review':
-        return <span className="bg-amber-950 text-amber-300 border border-amber-800/60 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1"><Clock className="w-3 h-3" /><span>Pending Review</span></span>;
+        return (
+          <span className="bg-amber-950 text-amber-300 border border-amber-800/60 text-2xs font-bold px-2 py-0.5 rounded-full flex items-center space-x-1">
+            <Clock className="w-3 h-3" />
+            <span>Pending Review</span>
+          </span>
+        );
       case 'rejected':
-        return <span className="bg-rose-950 text-rose-300 border border-rose-800/60 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1"><XCircle className="w-3 h-3" /><span>Rejected</span></span>;
+        return (
+          <span className="bg-rose-950 text-rose-300 border border-rose-800/60 text-2xs font-bold px-2 py-0.5 rounded-full flex items-center space-x-1">
+            <XCircle className="w-3 h-3" />
+            <span>Rejected</span>
+          </span>
+        );
       case 'scheduled':
-        return <span className="bg-indigo-950 text-indigo-300 border border-indigo-800/60 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1"><Calendar className="w-3 h-3" /><span>Scheduled</span></span>;
+        return (
+          <span className="bg-indigo-950 text-indigo-300 border border-indigo-800/60 text-2xs font-bold px-2 py-0.5 rounded-full flex items-center space-x-1">
+            <Calendar className="w-3 h-3" />
+            <span>Scheduled</span>
+          </span>
+        );
       default:
-        return <span className="bg-slate-800 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize">{status}</span>;
+        return (
+          <span className="bg-slate-800 text-slate-300 text-2xs font-bold px-2 py-0.5 rounded-full capitalize">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -101,15 +136,11 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="p-2 rounded-xl bg-purple-950 text-purple-400 border border-purple-800/60">
-              <UserCheck className="w-5 h-5" />
-            </span>
-            <h1 className="text-2xl font-extrabold text-white">Workflow Approval Engine</h1>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800/60">
               RBAC Verified
             </span>
           </div>
-          <p className="text-slate-400 text-xs mt-1">
+          <p className="text-sm text-ink-muted">
             Review campaign assets, enforce lock states, verify decider permissions, and batch-approve content.
           </p>
         </div>
@@ -125,7 +156,7 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
           {pendingCount > 0 && (
             <button
               onClick={onBatchApproveAll}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 flex items-center space-x-2 transition-all"
+              className="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 flex items-center space-x-2 transition-all"
             >
               <CheckCheck className="w-4 h-4" />
               <span>Approve All Pending ({pendingCount})</span>
@@ -142,7 +173,9 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
             <button
               onClick={() => setFilterStatus('all')}
               className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                filterStatus === 'all' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+                filterStatus === 'all'
+                  ? 'bg-indigo-600 text-white font-semibold'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               All ({workspaceAssets.length})
@@ -150,7 +183,9 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
             <button
               onClick={() => setFilterStatus('pending_review')}
               className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                filterStatus === 'pending_review' ? 'bg-amber-600 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+                filterStatus === 'pending_review'
+                  ? 'bg-amber-600 text-white font-semibold'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               Pending ({pendingCount})
@@ -158,7 +193,9 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
             <button
               onClick={() => setFilterStatus('approved')}
               className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                filterStatus === 'approved' ? 'bg-emerald-600 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+                filterStatus === 'approved'
+                  ? 'bg-emerald-700 text-white font-semibold'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               Approved
@@ -166,7 +203,9 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
             <button
               onClick={() => setFilterStatus('rejected')}
               className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                filterStatus === 'rejected' ? 'bg-rose-600 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+                filterStatus === 'rejected'
+                  ? 'bg-rose-600 text-white font-semibold'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               Rejected
@@ -176,8 +215,12 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
           {/* Asset List Stack */}
           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
             {filteredAssets.length === 0 ? (
-              <div className="bg-slate-900/60 border border-slate-800 p-8 rounded-2xl text-center text-slate-400 text-xs">
-                No campaign assets found matching current filter.
+              <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl text-center text-slate-300 text-sm">
+                <p className="font-bold text-white">Nothing here</p>
+                <p className="mt-1">
+                  No assets match this filter. Create one in AI Asset Studio and submit it for approval, or pick another
+                  filter above.
+                </p>
               </div>
             ) : (
               filteredAssets.map((asset) => {
@@ -189,25 +232,23 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
                     className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-2 ${
                       isSelected
                         ? 'bg-slate-900 border-indigo-500/80 shadow-lg shadow-indigo-500/10'
-                        : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                        : 'bg-slate-900 border-slate-800 hover:border-slate-700'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         {getPlatformIcon(asset.platform)}
                         <span className="text-xs font-bold text-white capitalize">{asset.platform}</span>
-                        <span className="text-[10px] text-slate-500">v{asset.currentVersion}</span>
+                        <span className="text-2xs text-slate-400">v{asset.currentVersion}</span>
                       </div>
                       {getStatusBadge(asset.status)}
                     </div>
 
                     <h4 className="text-xs font-semibold text-slate-200 line-clamp-1">{asset.title}</h4>
 
-                    <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
-                      {asset.caption}
-                    </p>
+                    <p className="text-2xs text-slate-400 line-clamp-2 leading-relaxed">{asset.caption}</p>
 
-                    <div className="flex items-center justify-between pt-1 text-[10px] text-slate-500 border-t border-slate-800/60">
+                    <div className="flex items-center justify-between pt-1 text-2xs text-slate-400 border-t border-slate-800/60">
                       <span>Assigned: {currentApprover.name}</span>
                       {asset.lockedBy && (
                         <span className="flex items-center space-x-1 text-amber-400 font-medium">
@@ -226,7 +267,7 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
         {/* Right Column: Asset Inspection & Decider Board (7 Cols) */}
         <div className="lg:col-span-7 space-y-6">
           {selectedAsset ? (
-            <div className="bg-slate-900/90 border border-slate-800 p-6 rounded-2xl space-y-6">
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-6">
               {/* Top Details Header */}
               <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                 <div className="space-y-1">
@@ -235,11 +276,20 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
                     <h2 className="text-lg font-bold text-white">{selectedAsset.title}</h2>
                   </div>
                   <div className="flex items-center space-x-3 text-xs text-slate-400">
-                    <span>Platform: <strong className="text-slate-200 capitalize">{selectedAsset.platform}</strong></span>
+                    <span>
+                      Platform: <strong className="text-slate-200 capitalize">{selectedAsset.platform}</strong>
+                    </span>
                     <span>•</span>
-                    <span>Version: <strong className="text-slate-200">v{selectedAsset.currentVersion}</strong></span>
+                    <span>
+                      Version: <strong className="text-slate-200">v{selectedAsset.currentVersion}</strong>
+                    </span>
                     <span>•</span>
-                    <span>Assigned Approver: <strong className="text-slate-200">{currentApprover.name} ({currentApprover.role})</strong></span>
+                    <span>
+                      Assigned Approver:{' '}
+                      <strong className="text-slate-200">
+                        {currentApprover.name} ({currentApprover.role})
+                      </strong>
+                    </span>
                   </div>
                 </div>
 
@@ -251,9 +301,11 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
                 <div className="p-3 bg-amber-950/60 border border-amber-800/60 rounded-xl text-xs text-amber-300 flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Lock className="w-4 h-4 text-amber-400" />
-                    <span><strong>Active Workflow Lock:</strong> {currentApprover.name} is currently reviewing this asset.</span>
+                    <span>
+                      <strong>Active Workflow Lock:</strong> {currentApprover.name} is currently reviewing this asset.
+                    </span>
                   </div>
-                  <span className="text-[10px] font-mono bg-amber-900/80 px-2 py-0.5 rounded">LOCKED</span>
+                  <span className="text-2xs font-mono bg-amber-900/80 px-2 py-0.5 rounded">LOCKED</span>
                 </div>
               )}
 
@@ -271,7 +323,7 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
                   <span className="font-bold text-slate-400">Hashtags</span>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {selectedAsset.hashtags.map((h, idx) => (
-                      <span key={idx} className="bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded text-[11px]">
+                      <span key={idx} className="bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded text-2xs">
                         {h}
                       </span>
                     ))}
@@ -280,25 +332,30 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
 
                 <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800/80 space-y-1">
                   <span className="font-bold text-slate-400">Visual Art Direction</span>
-                  <p className="text-slate-300 text-[11px] leading-relaxed pt-1">
-                    {selectedAsset.visualDirection}
-                  </p>
+                  <p className="text-slate-300 text-2xs leading-relaxed pt-1">{selectedAsset.visualDirection}</p>
                 </div>
               </div>
 
               {/* Reviewer Comment Thread */}
               <div className="space-y-3 pt-2 border-t border-slate-800">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-1.5">
-                  <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
+                  <MessageSquare className="w-3.5 h-3.5 text-indigo-300" />
                   <span>Review Comments & Audit Trail ({selectedAsset.comments.length})</span>
                 </span>
 
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {selectedAsset.comments.map((c) => (
-                    <div key={c.id} className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1 text-xs">
-                      <div className="flex items-center justify-between text-slate-400 text-[10px]">
+                    <div
+                      key={c.id}
+                      className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1 text-xs"
+                    >
+                      <div className="flex items-center justify-between text-slate-400 text-2xs">
                         <div className="flex items-center space-x-2">
-                          <img src={c.authorAvatar} alt={c.authorName} className="w-4 h-4 rounded-full object-cover" />
+                          <SafeImg
+                            src={c.authorAvatar}
+                            alt={c.authorName}
+                            className="w-4 h-4 rounded-full object-cover"
+                          />
                           <span className="font-bold text-slate-200">{c.authorName}</span>
                         </div>
                         <span>{new Date(c.createdAt).toLocaleTimeString()}</span>
@@ -331,7 +388,9 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
               <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center space-x-2 text-xs text-slate-400">
                   <UserCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Decider Check: <strong className="text-slate-200">{currentApprover.name}</strong></span>
+                  <span>
+                    Decider Check: <strong className="text-slate-200">{currentApprover.name}</strong>
+                  </span>
                 </div>
 
                 <div className="flex items-center space-x-3 w-full sm:w-auto">
@@ -345,7 +404,7 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
 
                   <button
                     onClick={handleApprove}
-                    className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 flex items-center justify-center space-x-1.5 transition-all"
+                    className="flex-1 sm:flex-none bg-emerald-700 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 flex items-center justify-center space-x-1.5 transition-all"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Approve & Schedule</span>
@@ -354,7 +413,7 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
               </div>
             </div>
           ) : (
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 text-xs">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 text-xs">
               Select an asset from the queue on the left to inspect details and issue approval decisions.
             </div>
           )}
@@ -363,7 +422,11 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
 
       {/* Rejection Modal */}
       {showRejectionModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <Dialog
+          onClose={() => setShowRejectionModal(false)}
+          label="Request changes"
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        >
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <h3 className="text-base font-bold text-white flex items-center space-x-2">
               <AlertTriangle className="w-5 h-5 text-rose-400" />
@@ -396,7 +459,7 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   );

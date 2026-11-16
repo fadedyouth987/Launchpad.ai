@@ -1,23 +1,17 @@
 import React, { useState } from 'react';
-import { CampaignAsset, Workspace, Platform } from '../types';
-import { 
-  Calendar, 
-  Send, 
-  CheckCircle2, 
-  Clock, 
-  Globe, 
-  Linkedin, 
-  Instagram, 
-  Twitter, 
-  Facebook, 
-  Video, 
-  RefreshCw, 
-  Sparkles, 
+import { CampaignAsset, Workspace } from '../types';
+import {
+  Send,
+  Clock,
+  Globe,
+  Linkedin,
+  Instagram,
+  Twitter,
+  Facebook,
+  Video,
+  Sparkles,
   Smartphone,
-  Eye,
-  Plus,
-  MessageSquare,
-  Bot
+  Bot,
 } from 'lucide-react';
 
 interface SocialPublisherProps {
@@ -26,26 +20,52 @@ interface SocialPublisherProps {
   onPublishNow: (assetId: string) => void;
 }
 
-export const SocialPublisher: React.FC<SocialPublisherProps> = ({
-  currentWorkspace,
-  assets,
-  onPublishNow,
-}) => {
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform>('linkedin');
+export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspace, assets, onPublishNow }) => {
   const [previewAssetId, setPreviewAssetId] = useState<string | null>(null);
 
   const workspaceAssets = assets.filter((a) => a.workspaceId === currentWorkspace.id);
   const scheduledAssets = workspaceAssets.filter((a) => a.status === 'scheduled' || a.status === 'approved');
 
-  const selectedAsset = workspaceAssets.find((a) => a.id === previewAssetId) || scheduledAssets[0] || workspaceAssets[0] || null;
+  const selectedAsset =
+    workspaceAssets.find((a) => a.id === previewAssetId) || scheduledAssets[0] || workspaceAssets[0] || null;
 
   // Social Channels Status Mock
   const channels = [
-    { platform: 'linkedin', handle: 'Acme Corp (Company Page)', status: 'Active', icon: <Linkedin className="w-4 h-4 text-blue-400" />, tokenExpires: 'in 58 days' },
-    { platform: 'instagram', handle: '@acme_official', status: 'Active', icon: <Instagram className="w-4 h-4 text-pink-400" />, tokenExpires: 'in 42 days' },
-    { platform: 'tiktok', handle: '@acmetok_global', status: 'Active', icon: <Video className="w-4 h-4 text-teal-400" />, tokenExpires: 'in 30 days' },
-    { platform: 'twitter', handle: '@acme_tech', status: 'Active', icon: <Twitter className="w-4 h-4 text-sky-400" />, tokenExpires: 'in 85 days' },
-    { platform: 'facebook', handle: 'Acme Brand Page', status: 'Active', icon: <Facebook className="w-4 h-4 text-indigo-400" />, tokenExpires: 'in 60 days' },
+    {
+      platform: 'linkedin',
+      handle: 'Acme Corp (Company Page)',
+      status: 'Active',
+      icon: <Linkedin className="w-4 h-4 text-blue-400" />,
+      tokenExpires: 'in 58 days',
+    },
+    {
+      platform: 'instagram',
+      handle: '@acme_official',
+      status: 'Active',
+      icon: <Instagram className="w-4 h-4 text-pink-400" />,
+      tokenExpires: 'in 42 days',
+    },
+    {
+      platform: 'tiktok',
+      handle: '@acmetok_global',
+      status: 'Active',
+      icon: <Video className="w-4 h-4 text-teal-400" />,
+      tokenExpires: 'in 30 days',
+    },
+    {
+      platform: 'twitter',
+      handle: '@acme_tech',
+      status: 'Active',
+      icon: <Twitter className="w-4 h-4 text-sky-400" />,
+      tokenExpires: 'in 85 days',
+    },
+    {
+      platform: 'facebook',
+      handle: 'Acme Brand Page',
+      status: 'Active',
+      icon: <Facebook className="w-4 h-4 text-indigo-300" />,
+      tokenExpires: 'in 60 days',
+    },
   ];
 
   return (
@@ -54,15 +74,11 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="p-2 rounded-xl bg-blue-950 text-blue-400 border border-blue-800/60">
-              <Calendar className="w-5 h-5" />
-            </span>
-            <h1 className="text-2xl font-extrabold text-white">Multi-Channel Social Publisher</h1>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800/60">
               Auto Dispatch Engine
             </span>
           </div>
-          <p className="text-slate-400 text-xs mt-1">
+          <p className="text-sm text-ink-muted">
             Schedule, preview, and dispatch multi-platform content across active enterprise channel tokens.
           </p>
         </div>
@@ -76,7 +92,7 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({
       {/* Social Accounts Status Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {channels.map((ch) => (
-          <div key={ch.platform} className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl space-y-1 text-xs">
+          <div key={ch.platform} className="bg-slate-900 border border-slate-800 p-3 rounded-xl space-y-1 text-xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-1.5">
                 {ch.icon}
@@ -84,8 +100,8 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({
               </div>
               <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium truncate">{ch.handle}</p>
-            <span className="text-[10px] text-slate-500 block">Token valid: {ch.tokenExpires}</span>
+            <p className="text-2xs text-slate-400 font-medium truncate">{ch.handle}</p>
+            <span className="text-2xs text-slate-400 block">Token valid: {ch.tokenExpires}</span>
           </div>
         ))}
       </div>
@@ -94,18 +110,20 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({
         {/* Left Column: Scheduled Content Calendar (7 Cols) */}
         <div className="lg:col-span-7 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-              <Clock className="w-4 h-4 text-indigo-400" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+              <Clock className="w-4 h-4 text-indigo-300" />
               <span>Approved & Scheduled Queue ({scheduledAssets.length})</span>
             </h3>
-            <span className="text-xs text-slate-500">Auto-publishes at scheduled timestamps</span>
+            <span className="text-xs text-ink-subtle">Auto-publishes at scheduled timestamps</span>
           </div>
 
           <div className="space-y-3">
             {scheduledAssets.length === 0 ? (
-              <div className="bg-slate-900/60 border border-slate-800 p-8 rounded-2xl text-center text-slate-400 text-xs space-y-2">
+              <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl text-center text-slate-400 text-xs space-y-2">
                 <p>No content currently scheduled for auto-publishing.</p>
-                <p className="text-[11px] text-slate-500">Submit assets through AI Studio and approve them in the Approval Queue to populate this schedule.</p>
+                <p className="text-2xs text-slate-400">
+                  Submit assets through AI Studio and approve them in the Approval Queue to populate this schedule.
+                </p>
               </div>
             ) : (
               scheduledAssets.map((asset) => (
@@ -115,7 +133,7 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({
                   className={`p-4 rounded-2xl border transition-all space-y-3 cursor-pointer ${
                     selectedAsset?.id === asset.id
                       ? 'bg-slate-900 border-indigo-500 shadow-lg shadow-indigo-500/10'
-                      : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                      : 'bg-slate-900 border-slate-800 hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -125,18 +143,19 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({
                       </span>
                       <h4 className="text-xs font-bold text-slate-200 line-clamp-1">{asset.title}</h4>
                     </div>
-                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded-full">
+                    <span className="text-2xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded-full">
                       Ready
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
-                    {asset.caption}
-                  </p>
+                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">{asset.caption}</p>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-[11px]">
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-2xs">
                     <span className="text-slate-400">
-                      Scheduled: <strong className="text-slate-200">{asset.scheduledTime ? new Date(asset.scheduledTime).toLocaleDateString() : 'Immediate'}</strong>
+                      Scheduled:{' '}
+                      <strong className="text-slate-200">
+                        {asset.scheduledTime ? new Date(asset.scheduledTime).toLocaleDateString() : 'Immediate'}
+                      </strong>
                     </span>
 
                     <button
@@ -159,11 +178,13 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({
         {/* Right Column: Platform Device Live Preview Wrapper (5 Cols) */}
         <div className="lg:col-span-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
               <Smartphone className="w-4 h-4 text-purple-400" />
               <span>Platform Device Preview</span>
             </h3>
-            <span className="text-xs font-mono text-indigo-400 uppercase">{selectedAsset?.platform || 'linkedin'}</span>
+            <span className="text-xs font-mono text-indigo-700 dark:text-indigo-300 uppercase">
+              {selectedAsset?.platform || 'linkedin'}
+            </span>
           </div>
 
           {selectedAsset ? (
@@ -176,10 +197,10 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({
                   </div>
                   <div>
                     <span className="text-xs font-bold text-white block">Acme Corp Official</span>
-                    <span className="text-[10px] text-slate-400">Promoted • Enterprise SaaS</span>
+                    <span className="text-2xs text-slate-400">Promoted • Enterprise SaaS</span>
                   </div>
                 </div>
-                <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full capitalize">
+                <span className="text-2xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full capitalize">
                   {selectedAsset.platform}
                 </span>
               </div>
@@ -192,7 +213,7 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({
               {/* Hashtags */}
               <div className="flex flex-wrap gap-1">
                 {selectedAsset.hashtags.map((h, i) => (
-                  <span key={i} className="text-[11px] text-indigo-400 font-medium">
+                  <span key={i} className="text-2xs text-indigo-300 font-medium">
                     {h}
                   </span>
                 ))}
@@ -200,23 +221,23 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({
 
               {/* Mock Visual Asset Box */}
               <div className="w-full h-48 bg-slate-900 rounded-2xl border border-slate-800/80 p-4 flex flex-col items-center justify-center text-center space-y-2 relative overflow-hidden">
-                <div className="w-12 h-12 rounded-xl bg-indigo-950 border border-indigo-800 flex items-center justify-center text-indigo-400">
+                <div className="w-12 h-12 rounded-xl bg-indigo-950 border border-indigo-800 flex items-center justify-center text-indigo-300">
                   <Sparkles className="w-6 h-6" />
                 </div>
                 <div className="space-y-0.5 max-w-xs">
                   <span className="text-xs font-bold text-white block">Visual Art Direction</span>
-                  <p className="text-[10px] text-slate-400 line-clamp-2 italic">{selectedAsset.visualDirection}</p>
+                  <p className="text-2xs text-slate-400 line-clamp-2 italic">{selectedAsset.visualDirection}</p>
                 </div>
               </div>
 
               {/* Device Footer Actions */}
-              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-2xs text-slate-400">
                 <span>Like • Comment • Repost</span>
                 <span className="text-emerald-400 font-medium">Token Status: Valid</span>
               </div>
             </div>
           ) : (
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 text-xs">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 text-xs">
               Select an asset to see live native device formatting.
             </div>
           )}
@@ -238,7 +259,9 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({
         </div>
 
         <div className="flex items-center space-x-2 text-xs font-bold text-purple-300">
-          <span>Switch to the <strong>Smart Engagement</strong> tab to review AI auto-reply suggestions.</span>
+          <span>
+            Switch to the <strong>Smart Engagement</strong> tab to review AI auto-reply suggestions.
+          </span>
         </div>
       </div>
     </div>

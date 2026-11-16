@@ -1,35 +1,30 @@
 import React, { useState } from 'react';
 import { Workspace } from '../types';
-import { 
-  Palette, 
-  Sparkles, 
-  BookOpen, 
-  Tag, 
-  ShieldCheck, 
-  Plus, 
-  Sliders, 
-  SlidersHorizontal, 
-  CheckCircle2, 
-  Trash2,
-  FileText,
-  UserCheck
-} from 'lucide-react';
+import { Palette, BookOpen, Tag, ShieldCheck, Plus, UserCheck } from 'lucide-react';
 
 interface BrandAssetLibraryProps {
   currentWorkspace: Workspace;
 }
 
-export const BrandAssetLibrary: React.FC<BrandAssetLibraryProps> = ({ currentWorkspace }) => {
+export const BrandAssetLibrary: React.FC<BrandAssetLibraryProps> = () => {
   const [toneKeywords, setToneKeywords] = useState<string[]>([
-    'Authoritative', 'Visionary', 'Enterprise Tech', 'High Contrast Minimalist', 'Data-Driven'
+    'Authoritative',
+    'Visionary',
+    'Enterprise Tech',
+    'High Contrast Minimalist',
+    'Data-Driven',
   ]);
   const [disallowedWords, setDisallowedWords] = useState<string[]>([
-    'Synergy', 'Revolutionary', 'Disruptive', 'Paradigm Shift', 'Game-Changer'
+    'Synergy',
+    'Revolutionary',
+    'Disruptive',
+    'Paradigm Shift',
+    'Game-Changer',
   ]);
   const [newToneInput, setNewToneInput] = useState<string>('');
   const [newDisallowedInput, setNewDisallowedInput] = useState<string>('');
 
-  const [brandColors, setBrandColors] = useState([
+  const [brandColors] = useState([
     { name: 'Obsidian Canvas', hex: '#020617', type: 'Primary Dark' },
     { name: 'Electric Indigo', hex: '#4f46e5', type: 'Accent Accent' },
     { name: 'Emerald Ledger', hex: '#10b981', type: 'Success Token' },
@@ -40,18 +35,18 @@ export const BrandAssetLibrary: React.FC<BrandAssetLibraryProps> = ({ currentWor
     {
       title: 'Enterprise Growth Lead',
       description: 'Focuses on campaign velocity, ROI attribution, team governance, and multi-channel scale.',
-      tag: 'Primary B2B'
+      tag: 'Primary B2B',
     },
     {
       title: 'Content Decider / Approver',
       description: 'Cares about brand voice compliance, legal hold safeguards, and rapid review approvals.',
-      tag: 'Governance'
+      tag: 'Governance',
     },
     {
       title: 'Social Media Producer',
       description: 'Requires rapid AI generation, platform native previews, and auto-scheduling queues.',
-      tag: 'Operations'
-    }
+      tag: 'Operations',
+    },
   ];
 
   const handleAddTone = () => {
@@ -72,16 +67,13 @@ export const BrandAssetLibrary: React.FC<BrandAssetLibraryProps> = ({ currentWor
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="p-2 rounded-xl bg-indigo-950 text-indigo-400 border border-indigo-800/60">
-              <Palette className="w-5 h-5" />
-            </span>
-            <h1 className="text-2xl font-extrabold text-white">Brand Kit & AI Identity Tokens</h1>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800/60">
               AI Generation Rules
             </span>
           </div>
-          <p className="text-slate-400 text-xs mt-1">
-            Configure tone of voice, target customer personas, color hex tokens, and disallowed buzzwords enforced by Gemini 3.6 Flash.
+          <p className="text-sm text-ink-muted">
+            Configure tone of voice, target customer personas, color hex tokens, and disallowed buzzwords for your team.
+            These rules are saved for reviewers; they are not yet sent to the AI model automatically.
           </p>
         </div>
 
@@ -95,15 +87,18 @@ export const BrandAssetLibrary: React.FC<BrandAssetLibraryProps> = ({ currentWor
         {/* Left Column: Tone & Copy Rules (7 Cols) */}
         <div className="lg:col-span-7 space-y-6">
           {/* Tone Keywords */}
-          <div className="bg-slate-900/90 border border-slate-800 p-6 rounded-2xl space-y-4">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
             <h3 className="text-sm font-bold text-white flex items-center space-x-2 border-b border-slate-800 pb-3">
-              <BookOpen className="w-4 h-4 text-indigo-400" />
+              <BookOpen className="w-4 h-4 text-indigo-300" />
               <span>Approved Brand Tone Directives</span>
             </h3>
 
             <div className="flex flex-wrap gap-2">
               {toneKeywords.map((tk, idx) => (
-                <span key={idx} className="bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 text-xs font-semibold px-3 py-1 rounded-xl flex items-center space-x-1.5">
+                <span
+                  key={idx}
+                  className="bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 text-xs font-semibold px-3 py-1 rounded-xl flex items-center space-x-1.5"
+                >
                   <span>{tk}</span>
                   <button
                     onClick={() => setToneKeywords(toneKeywords.filter((_, i) => i !== idx))}
@@ -134,19 +129,23 @@ export const BrandAssetLibrary: React.FC<BrandAssetLibraryProps> = ({ currentWor
           </div>
 
           {/* Disallowed Words Filter */}
-          <div className="bg-slate-900/90 border border-slate-800 p-6 rounded-2xl space-y-4">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
             <h3 className="text-sm font-bold text-white flex items-center space-x-2 border-b border-slate-800 pb-3">
               <Tag className="w-4 h-4 text-rose-400" />
               <span>Disallowed Words & Banned Buzzwords</span>
             </h3>
 
             <p className="text-xs text-slate-400">
-              Gemini 3.6 Flash will automatically filter out and reject these terms during generation.
+              Reviewers check these terms in the Approvals Queue. Automatic filtering during generation is not built
+              yet.
             </p>
 
             <div className="flex flex-wrap gap-2">
               {disallowedWords.map((dw, idx) => (
-                <span key={idx} className="bg-rose-950/60 text-rose-300 border border-rose-800/60 text-xs font-semibold px-3 py-1 rounded-xl flex items-center space-x-1.5 font-mono">
+                <span
+                  key={idx}
+                  className="bg-rose-950/60 text-rose-300 border border-rose-800/60 text-xs font-semibold px-3 py-1 rounded-xl flex items-center space-x-1.5 font-mono"
+                >
                   <span>{dw}</span>
                   <button
                     onClick={() => setDisallowedWords(disallowedWords.filter((_, i) => i !== idx))}
@@ -180,22 +179,25 @@ export const BrandAssetLibrary: React.FC<BrandAssetLibraryProps> = ({ currentWor
         {/* Right Column: Colors & Target Personas (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
           {/* Brand Palette */}
-          <div className="bg-slate-900/90 border border-slate-800 p-6 rounded-2xl space-y-4">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
             <h3 className="text-sm font-bold text-white flex items-center space-x-2 border-b border-slate-800 pb-3">
-              <Palette className="w-4 h-4 text-indigo-400" />
+              <Palette className="w-4 h-4 text-indigo-300" />
               <span>Brand Color Hex Tokens</span>
             </h3>
 
             <div className="grid grid-cols-2 gap-3">
               {brandColors.map((col, idx) => (
-                <div key={idx} className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center space-x-3 text-xs">
+                <div
+                  key={idx}
+                  className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center space-x-3 text-xs"
+                >
                   <div
                     className="w-8 h-8 rounded-lg border border-slate-700 shrink-0"
                     style={{ backgroundColor: col.hex }}
                   />
                   <div>
                     <span className="font-bold text-white block truncate">{col.name}</span>
-                    <span className="text-[10px] text-indigo-400 font-mono font-bold">{col.hex}</span>
+                    <span className="text-2xs text-indigo-300 font-mono font-bold">{col.hex}</span>
                   </div>
                 </div>
               ))}
@@ -203,7 +205,7 @@ export const BrandAssetLibrary: React.FC<BrandAssetLibraryProps> = ({ currentWor
           </div>
 
           {/* Target Audience Personas */}
-          <div className="bg-slate-900/90 border border-slate-800 p-6 rounded-2xl space-y-4">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
             <h3 className="text-sm font-bold text-white flex items-center space-x-2 border-b border-slate-800 pb-3">
               <UserCheck className="w-4 h-4 text-purple-400" />
               <span>Target Audience Personas ({personas.length})</span>
@@ -214,11 +216,11 @@ export const BrandAssetLibrary: React.FC<BrandAssetLibraryProps> = ({ currentWor
                 <div key={idx} className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-white">{p.title}</span>
-                    <span className="text-[10px] font-bold bg-slate-900 text-indigo-300 border border-slate-800 px-2 py-0.5 rounded-full">
+                    <span className="text-2xs font-bold bg-slate-900 text-indigo-300 border border-slate-800 px-2 py-0.5 rounded-full">
                       {p.tag}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">{p.description}</p>
+                  <p className="text-2xs text-slate-400 leading-relaxed">{p.description}</p>
                 </div>
               ))}
             </div>
