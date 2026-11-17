@@ -3,19 +3,22 @@ import { apiFetch } from '../lib/api';
 import { SafeImg } from './ui/SafeImg';
 import { TeamInvites } from './TeamInvites';
 import { Workspace, WorkspaceRole } from '../types';
-import { Users, ShieldCheck, Lock, CheckCircle2, Key } from 'lucide-react';
+import { Users, ShieldCheck, Lock, CheckCircle2, Key, UserMinus } from 'lucide-react';
 
 interface WorkspacePresenceProps {
   currentWorkspace: Workspace;
   /** Signed-in user's id (undefined in demo mode). */
   currentUserId?: string;
   onUpdateMemberRole: (memberId: string, role: WorkspaceRole) => void;
+  /** Removes a member (frees a plan seat). */
+  onRemoveMember?: (memberId: string) => void;
 }
 
 export const WorkspacePresence: React.FC<WorkspacePresenceProps> = ({
   currentWorkspace,
   currentUserId,
   onUpdateMemberRole,
+  onRemoveMember,
 }) => {
   const myRole = currentWorkspace.members.find((m) => m.id === currentUserId)?.role;
   const canInvite = Boolean(currentUserId) && (myRole === 'owner' || myRole === 'admin');
@@ -121,19 +124,43 @@ export const WorkspacePresence: React.FC<WorkspacePresenceProps> = ({
                 </div>
               </div>
 
-              {/* Role Select */}
-              <select
-                aria-label={`Role for ${member.name}`}
-                value={member.role}
-                onChange={(e) => onUpdateMemberRole(member.id, e.target.value as WorkspaceRole)}
-                className="bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 font-medium focus:border-indigo-500 outline-none"
-              >
-                <option value="owner">Owner (Full RBAC)</option>
-                <option value="admin">Admin</option>
-                <option value="approver">Approver (Decider)</option>
-                <option value="creator">Creator (AI Studio)</option>
-                <option value="viewer">Viewer (Read-only)</option>
-              </select>
+              <div className="flex items-center space-x-2">
+                {/* Role Select */}
+                <select
+                  aria-label={`Role for ${member.name}`}
+                  value={member.role}
+                  onChange={(e) => onUpdateMemberRole(member.id, e.target.value as WorkspaceRole)}
+                  className="bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 font-medium focus:border-indigo-500 outline-none"
+                >
+                  <option value="owner">Owner (Full RBAC)</option>
+                  <option value="admin">Admin</option>
+                  <option value="approver">Approver (Decider)</option>
+                  <option value="creator">Creator (AI Studio)</option>
+                  <option value="viewer">Viewer (Read-only)</option>
+                </select>
+                {onRemoveMember &&
+                  canInvite &&
+                  member.role !== 'owner' &&
+                  member.id !== currentUserId &&
+                  (myRole === 'owner' || member.role !== 'admin') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Remove ${member.name} from ${currentWorkspace.name}? They lose access immediately.`,
+                          )
+                        )
+                          onRemoveMember(member.id);
+                      }}
+                      className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-rose-900 text-slate-300"
+                      aria-label={`Remove ${member.name}`}
+                      title="Remove from workspace"
+                    >
+                      <UserMinus className="w-4 h-4" />
+                    </button>
+                  )}
+              </div>
             </div>
           ))}
         </div>

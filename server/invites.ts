@@ -3,6 +3,7 @@ import { DEMO_MODE } from './auth';
 import { db, withTx } from './db';
 import { ApiError } from './errors';
 import { assertRole, type Role } from './workspaces';
+import { assertCanInvite, assertCanJoin, seatUsage } from './memberLimits';
 
 export const INVITE_DAYS = 7;
 const hash = (token: string) => createHash('sha256').update(token).digest('hex');
@@ -44,6 +45,8 @@ export async function createInvite(uid: string, workspaceId: string, email: stri
       )
     ).rows[0].n;
     if (pending >= 50) throw new ApiError(409, 'INVITE_LIMIT', 'A workspace can have at most 50 open invitations.');
+    // Plan seats: members + open invitations (the workspace row lock above serialises concurrent invites).
+    assertCanInvite(await seatUsage(c, workspaceId));
     const { rows } = await c.query(
       `INSERT INTO workspace_invites (id, workspace_id, email, role, token_hash, invited_by, expires_at)
        VALUES ($1, $2, $3, $4, $5, $6, now() + make_interval(days => $7)) RETURNING *`,
@@ -93,6 +96,14 @@ export async function acceptInvite(uid: string, email: string | undefined, token
         `This invitation is for ${inv.email}. Sign in with that email to accept it.`,
       );
     }
+    // Re-check seats at accept time (the plan may have been downgraded since the invite was sent).
+    // Lock the workspace so two people accepting at once cannot both take the last seat.
+    await c.query('SELECT 1 FROM workspaces WHERE id = $1 FOR UPDATE', [inv.workspace_id]);
+    const already = await c.query('SELECT 1 FROM workspace_members WHERE workspace_id = $1 AND user_id = $2', [
+      inv.workspace_id,
+      uid,
+    ]);
+    if (!already.rows.length) assertCanJoin(await seatUsage(c, inv.workspace_id));
     await c.query(
       `INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT (workspace_id, user_id) DO NOTHING`,
       [inv.workspace_id, uid, inv.role],

@@ -265,7 +265,13 @@ is missing or malformed in API-only mode. Check `https://<service-url>/api/healt
   requests can never overspend; a refund is keyed to its reservation (`reservation_id UNIQUE`), so it can
   happen only once. The browser has no database access at all.
 - Plans (starter/professional/enterprise) are monthly Stripe subscriptions (see [Payments](#payments-stripe)): each
-  paid month adds the plan's credits (they carry over). Member limits are not enforced yet.
+  paid month adds the plan's credits (they carry over).
+- **Member limits** (`PLAN_MEMBER_LIMITS`, default `starter:3,professional:10,enterprise:0`, 0 = unlimited; the owner
+  counts). The plan that counts is the active subscription's; after a subscription ends it is Starter; a workspace
+  that never subscribed uses its `plan` column (so an admin-set plan applies). Creating an invitation counts
+  members + open invitations; accepting re-checks members (with a row lock, so two people cannot take the last
+  seat). Nobody is removed on a downgrade; new invitations wait until the workspace is under the limit. Owners and
+  admins can remove members on the Team page (only the owner can remove an admin) to free seats.
 - The same credit price applies whichever provider runs the call, and whether it uses the server key or a
   workspace key.
 - Top-ups use Stripe Checkout when configured (see [Payments](#payments-stripe)). Admins can also add credits with

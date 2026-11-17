@@ -82,6 +82,12 @@ export async function setMemberRole(workspaceId: string, memberId: string, role:
   return r.ok ? null : apiErrorMessage(r, 'Could not change the role.');
 }
 
+/** Removes a member (owner/admin; only the owner can remove an admin). */
+export async function removeMember(workspaceId: string, memberId: string): Promise<string | null> {
+  const r = await apiJson(`${base(workspaceId)}/members/${encodeURIComponent(memberId)}`, { method: 'DELETE' });
+  return r.ok ? null : apiErrorMessage(r, 'Could not remove the member.');
+}
+
 // Campaign assets (stored in Postgres through the API; viewers read only, writers create and edit,
 // the creator or an owner/admin deletes).
 export async function fetchCampaignAssets(workspaceId: string): Promise<CampaignAsset[] | string> {

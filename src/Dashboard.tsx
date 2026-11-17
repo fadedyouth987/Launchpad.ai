@@ -12,6 +12,7 @@ import {
   saveInfluencer,
   setLegalHold,
   setMemberRole,
+  removeMember,
 } from './lib/workspaceApi';
 import {
   Workspace,
@@ -463,6 +464,16 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
     refreshAudit();
   };
 
+  const handleRemoveMember = async (memberId: string) => {
+    const wsId = currentWorkspace.id;
+    const err = await removeMember(wsId, memberId);
+    if (err) return setSyncError(err);
+    setWorkspaces((prev) =>
+      prev.map((w) => (w.id === wsId ? { ...w, members: w.members.filter((m) => m.id !== memberId) } : w)),
+    );
+    refreshAudit();
+  };
+
   const handleToggleLegalHold = async (wsId: string) => {
     const ws = workspaces.find((w) => w.id === wsId);
     if (!ws) return;
@@ -902,6 +913,7 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
                 currentWorkspace={currentWorkspace}
                 currentUserId={session.mode === 'account' ? session.uid : undefined}
                 onUpdateMemberRole={handleUpdateMemberRole}
+                onRemoveMember={session.mode === 'account' ? handleRemoveMember : undefined}
               />
             )}
 

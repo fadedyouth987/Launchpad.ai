@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { requireAuth } from '../auth';
+import { DEMO_MODE, requireAuth } from '../auth';
 import { dataWriteRateLimiter, webhookRateLimiter } from '../rateLimit';
 import { handle, parseBody, workspaceFromParam } from '../http';
 import { recordAudit } from '../audit';
 import { acceptInvite, createInvite, INVITE_DAYS, listInvites, revokeInvite } from '../invites';
 import { emailEnabled, escapeHtml, sendEmail } from '../email';
 import { appUrl } from '../payments';
+import { seatUsage } from '../memberLimits';
+import { db } from '../db';
 
 const inviteSchema = z
   .object({
@@ -25,7 +27,9 @@ export function inviteRoutes(emailFetch?: typeof fetch) {
     handle('invites/list', async (req, res) => {
       const ws = workspaceFromParam(req, res);
       if (!ws) return;
-      res.json({ success: true, emailEnabled: emailEnabled(), invites: await listInvites(req.authContext!.uid, ws) });
+      const invites = await listInvites(req.authContext!.uid, ws);
+      const seats = DEMO_MODE ? null : await seatUsage(db(), ws);
+      res.json({ success: true, emailEnabled: emailEnabled(), invites, seats });
     }),
   );
 

@@ -3,6 +3,13 @@ import { Copy, MailPlus, Trash2 } from 'lucide-react';
 import { apiErrorMessage, apiJson } from '../lib/api';
 import type { WorkspaceRole } from '../types';
 
+interface Seats {
+  planName: string;
+  limit: number | null;
+  members: number;
+  pendingInvites: number;
+}
+
 interface Invite {
   id: string;
   email: string;
@@ -14,6 +21,7 @@ interface Invite {
 export const TeamInvites: React.FC<{ workspaceId: string; canInvite: boolean }> = ({ workspaceId, canInvite }) => {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [emailEnabled, setEmailEnabled] = useState(false);
+  const [seats, setSeats] = useState<Seats | null>(null);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Exclude<WorkspaceRole, 'owner'>>('creator');
   const [busy, setBusy] = useState(false);
@@ -21,10 +29,13 @@ export const TeamInvites: React.FC<{ workspaceId: string; canInvite: boolean }> 
 
   const load = useCallback(async () => {
     if (!canInvite) return;
-    const r = await apiJson<{ invites: Invite[]; emailEnabled: boolean }>(`/api/workspaces/${workspaceId}/invites`);
+    const r = await apiJson<{ invites: Invite[]; emailEnabled: boolean; seats: Seats | null }>(
+      `/api/workspaces/${workspaceId}/invites`,
+    );
     if (r.ok) {
       setInvites(r.data.invites);
       setEmailEnabled(r.data.emailEnabled);
+      setSeats(r.data.seats ?? null);
     }
   }, [workspaceId, canInvite]);
 
@@ -61,8 +72,35 @@ export const TeamInvites: React.FC<{ workspaceId: string; canInvite: boolean }> 
     else setMsg({ ok: false, text: apiErrorMessage(r) });
   };
 
+  const used = seats ? seats.members + seats.pendingInvites : 0;
+  const full = Boolean(seats && seats.limit !== null && used >= seats.limit);
+
   return (
     <div className="space-y-4" data-testid="team-invites">
+      {seats && (
+        <p
+          data-testid="seat-usage"
+          className={`text-sm rounded-xl px-3 py-2 border ${
+            full ? 'bg-amber-950/40 border-amber-800/60 text-amber-200' : 'bg-slate-950 border-slate-800 text-slate-300'
+          }`}
+        >
+          {seats.limit === null ? (
+            <>
+              {seats.planName} plan: unlimited members ({seats.members} now).
+            </>
+          ) : (
+            <>
+              {seats.planName} plan: <strong>{used}</strong> of {seats.limit} seats used ({seats.members} member
+              {seats.members === 1 ? '' : 's'}
+              {seats.pendingInvites
+                ? `, ${seats.pendingInvites} open invitation${seats.pendingInvites === 1 ? '' : 's'}`
+                : ''}
+              ).
+              {full && ' Revoke an invitation, remove a member, or upgrade in Billing > Plans to invite more people.'}
+            </>
+          )}
+        </p>
+      )}
       <form onSubmit={send} className="flex flex-wrap items-end gap-3">
         <div className="min-w-[16rem] flex-1">
           <label htmlFor="invite-email" className="block text-sm font-semibold text-slate-200">
@@ -96,7 +134,7 @@ export const TeamInvites: React.FC<{ workspaceId: string; canInvite: boolean }> 
         </div>
         <button
           type="submit"
-          disabled={busy || !email}
+          disabled={busy || !email || full}
           className="inline-flex h-10 items-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white hover:bg-indigo-500 disabled:opacity-60"
         >
           <MailPlus className="h-4 w-4" />{' '}

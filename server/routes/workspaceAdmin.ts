@@ -5,7 +5,7 @@ import { dataWriteRateLimiter } from '../rateLimit';
 import { handle, parseBody, workspaceFromParam } from '../http';
 import { recordAudit } from '../audit';
 import { eraseWorkspace, exportWorkspace } from '../gdpr';
-import { setLegalHold, setMemberRole } from '../workspaces';
+import { removeMember, setLegalHold, setMemberRole } from '../workspaces';
 
 const eraseSchema = z.object({ confirmSlug: z.string().min(1).max(100) }).strict();
 const legalHoldSchema = z.object({ active: z.boolean() }).strict();
@@ -101,6 +101,29 @@ export function workspaceAdminRoutes() {
         ip: req.ip,
         action: 'workspace.member.role',
         details: `Changed role of member ${memberId} to ${body.role}.`,
+        severity: 'warning',
+      });
+      res.json({ success: true });
+    }),
+  );
+
+  r.delete(
+    `${base}/members/:memberId`,
+    requireAuth,
+    dataWriteRateLimiter,
+    handle('members/remove', async (req, res) => {
+      const ws = workspaceFromParam(req, res);
+      if (!ws) return;
+      const memberId = String(req.params.memberId);
+      if (!/^[A-Za-z0-9_-]{1,128}$/.test(memberId))
+        return res.status(400).json({ error: 'INVALID_ID', message: 'Invalid member id.' });
+      const { role } = await removeMember(req.authContext!.uid, ws, memberId);
+      await recordAudit({
+        workspaceId: ws,
+        uid: req.authContext!.uid,
+        ip: req.ip,
+        action: 'workspace.member.removed',
+        details: `Removed member ${memberId} (${role}).`,
         severity: 'warning',
       });
       res.json({ success: true });

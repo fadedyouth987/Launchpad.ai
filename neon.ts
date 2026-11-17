@@ -37,6 +37,7 @@ const OPTIONAL_ENV = [
   'STRIPE_CURRENCY',
   'CREDIT_PACKS',
   'PLAN_PRICES',
+  'PLAN_MEMBER_LIMITS',
   'PUBLIC_APP_URL',
   // Direct social publishing (LinkedIn) and the publish scheduler
   'LINKEDIN_CLIENT_ID',

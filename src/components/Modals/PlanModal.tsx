@@ -27,14 +27,14 @@ interface Subscription {
 }
 
 const FEATURES: Record<PlanId, string[]> = {
-  starter: ['Up to 3 team members', 'Standard AI generation', 'Approvals & scheduling'],
+  starter: ['Up to 3 members', 'Standard AI generation', 'Approvals & scheduling'],
   professional: [
-    'Up to 10 team members',
+    'Up to 10 members',
     'AI generation (Claude, GPT, Gemini, Grok)',
     'Workflow approvals & locks',
     'Signed outbound webhooks',
   ],
-  enterprise: ['Unlimited members & roles', 'Role-based access control', 'GDPR erasure workflow', 'Priority support'],
+  enterprise: ['Unlimited members', 'Role-based access control', 'GDPR erasure workflow', 'Priority support'],
 };
 
 const money = (amount: number, currency: string) =>
@@ -159,7 +159,7 @@ export const PlanModal: React.FC<PlanModalProps> = ({ currentWorkspace, isOpen, 
 
         <p className="text-xs text-slate-300 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 leading-relaxed">
           {enabled
-            ? 'Billed monthly through Stripe. Each paid month adds the plan’s credits to this workspace (unused credits carry over). Upgrades are charged the prorated difference right away and add the extra credits; downgrades take effect immediately with a prorated credit on your next invoice. Owners and admins can change the plan.'
+            ? 'Billed monthly through Stripe. Each paid month adds the plan’s credits to this workspace (unused credits carry over). Upgrades are charged the prorated difference right away and add the extra credits; downgrades take effect immediately with a prorated credit on your next invoice. Members (including open invitations) are limited per plan; on a downgrade nobody is removed, but new invitations wait until the workspace is under the limit. Owners and admins can change the plan.'
             : 'Payments are not connected on this server, so plans cannot be bought yet. The server admin must set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET.'}
         </p>
 

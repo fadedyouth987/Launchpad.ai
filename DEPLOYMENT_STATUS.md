@@ -22,7 +22,10 @@ This repo is the source of truth for what is live. If you deploy from anywhere e
    `neon deploy` creates the every-minute `publish-due` trigger.
 3. **AI voices + talking videos (ElevenLabs + D-ID).** Migration `006_media.sql`; set `ELEVENLABS_API_KEY`,
    `DID_API_KEY` and (optional) `PUBLIC_API_URL`.
-4. Also new: only owners/admins/approvers can approve or schedule posts (enforced by the API).
+4. **Member limits per plan** (3 / 10 / unlimited) on invitations, plus "Remove member" on the Team page. No
+   migration. Existing workspaces never subscribed default to Starter: those already above 3 members keep them but
+   cannot invite more until upgraded.
+5. Also new: only owners/admins/approvers can approve or schedule posts (enforced by the API).
 
 To ship: `npm run db:migrate` on **both** Neon projects, then `npm run deploy:api` and `npm run deploy:web`.
 Details: `HOW_TO_RUN.md` → Payments, Social publishing, and AI voices and talking videos.

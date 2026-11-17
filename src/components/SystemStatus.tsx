@@ -88,7 +88,7 @@ function capabilities(h: Health | null): { area: string; state: State; detail: s
       area: 'Paid plans',
       state: on('payments') ? 'works' : 'key',
       detail: on('payments')
-        ? 'Monthly Starter, Professional and Enterprise plans through Stripe Billing. Each paid month adds the plan’s credits; upgrades are prorated; card, invoices and cancelling are handled in the Stripe billing portal. Member limits are not enforced yet.'
+        ? 'Monthly Starter, Professional and Enterprise plans through Stripe Billing. Each paid month adds the plan’s credits; upgrades are prorated; card, invoices and cancelling are handled in the Stripe billing portal. Member limits (3 / 10 / unlimited) are enforced on invitations.'
         : 'Monthly plans through Stripe Billing are built but need STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET.',
     },
     {

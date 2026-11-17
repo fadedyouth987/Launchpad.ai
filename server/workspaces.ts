@@ -220,6 +220,30 @@ export async function setMemberRole(uid: string, workspaceId: string, memberId: 
   if (!r.rowCount) throw new ApiError(404, 'NOT_FOUND', 'Member not found.');
 }
 
+/**
+ * Removes a member (owner/admin). The owner cannot be removed, and only the owner can remove an admin.
+ * Frees a plan seat.
+ */
+export async function removeMember(uid: string, workspaceId: string, memberId: string) {
+  if (DEMO_MODE) throw new ApiError(400, 'NOT_AVAILABLE_IN_DEMO', 'Removing members is not available in demo mode.');
+  const ws = await assertRole(uid, workspaceId, ['owner', 'admin']);
+  if (memberId === ws.ownerId) throw new ApiError(400, 'OWNER_FIXED', 'The owner cannot be removed.');
+  const target = (
+    await db().query('SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2', [
+      workspaceId,
+      memberId,
+    ])
+  ).rows[0];
+  if (!target) throw new ApiError(404, 'NOT_FOUND', 'Member not found.');
+  if (target.role === 'admin' && ws.role !== 'owner')
+    throw new ApiError(403, 'ROLE_REQUIRED', 'Only the owner can remove an admin.');
+  await db().query(`DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 AND role <> 'owner'`, [
+    workspaceId,
+    memberId,
+  ]);
+  return { role: target.role as Role };
+}
+
 /** Turns legal hold on/off (owner/admin only). While on, erasure is refused. */
 export async function setLegalHold(uid: string, workspaceId: string, active: boolean) {
   if (DEMO_MODE) {
