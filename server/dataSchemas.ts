@@ -40,6 +40,12 @@ export const influencerSchema = z
       speed: z.number().min(0.25).max(4),
       accent: str(80),
       samplePhrase: str(500),
+      // ElevenLabs voice chosen for this influencer.
+      voiceId: z
+        .string()
+        .regex(/^[A-Za-z0-9_-]{1,100}$/)
+        .optional(),
+      voiceName: str(100).optional(),
     }),
     postsGeneratedCount: z.number().int().min(0).max(1_000_000),
     avgEngagementRate: str(20),

@@ -8,6 +8,7 @@ import { recordAudit } from '../audit';
 import { ApiError } from '../errors';
 import { appUrl } from '../payments';
 import { APPROVER_ROLES } from '../campaignAssets';
+import { refreshProcessingVideos } from '../media/service';
 import { authorizeUrl, exchangeCode, fetchProfile, LinkedInError, linkedinNotConfigured } from '../social/linkedin';
 import {
   deleteAccount,
@@ -180,6 +181,10 @@ export function socialRoutes(fetchImpl?: typeof fetch) {
     if (!schedulerAllowed(req)) return res.status(401).json({ error: 'UNAUTHORIZED' });
     try {
       const out = await publishDue({ fetchImpl });
+      // Same tick: finish talking-head videos D-ID has rendered (nobody may be watching them).
+      await refreshProcessingVideos().catch((err) =>
+        console.error('[media] video refresh failed:', (err as Error).message),
+      );
       if (out.checked)
         console.log(`[social] scheduler: ${out.published} published, ${out.failed} failed of ${out.checked}`);
       res.json({ success: true, ...out });

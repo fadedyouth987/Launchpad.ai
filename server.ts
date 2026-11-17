@@ -65,6 +65,7 @@ async function main() {
   // PUBLISH_SCHEDULER=off disables it (e.g. when an external cron calls /api/internal/publish-due).
   if (!DEMO_MODE && AUTH_CONFIGURED && process.env.PUBLISH_SCHEDULER !== 'off') {
     const { publishDue } = await import('./server/social/service');
+    const { refreshProcessingVideos } = await import('./server/media/service');
     let running = false;
     setInterval(() => {
       if (running) return;
@@ -72,6 +73,8 @@ async function main() {
       publishDue()
         .then((o) => o.checked && console.log(`[social] scheduler: ${o.published} published, ${o.failed} failed`))
         .catch((err) => console.error('[social] scheduler failed:', (err as Error).message))
+        .then(() => refreshProcessingVideos())
+        .catch((err) => console.error('[media] video refresh failed:', (err as Error).message))
         .finally(() => (running = false));
     }, 60_000).unref();
   }

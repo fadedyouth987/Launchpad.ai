@@ -16,6 +16,7 @@ import { imageRoutes } from './routes/images';
 import { paymentRoutes } from './routes/payments';
 import { inviteRoutes } from './routes/invites';
 import { socialRoutes } from './routes/social';
+import { mediaRoutes } from './routes/media';
 import { buildRateLimiters, setRateLimitStoreFactory, type RateLimitStoreFactory } from './rateLimit';
 
 export interface AppOptions {
@@ -30,6 +31,8 @@ export interface AppOptions {
   paymentsFetch?: typeof fetch;
   /** Tests: fetch used for LinkedIn API calls. */
   socialFetch?: typeof fetch;
+  /** Tests: fetch used for ElevenLabs and D-ID calls. */
+  mediaFetch?: typeof fetch;
   /** Tests: a custom provider resolver (takes precedence over `ai`). */
   aiResolver?: AiResolver;
   /** Shared rate-limit store (e.g. Redis) for multi-instance deployments. Default: in-memory. */
@@ -43,6 +46,7 @@ export interface AppOptions {
  * server.ts; tests mount this app directly.
  */
 const jsonParser = express.json({ limit: '100kb' });
+const videoJsonParser = express.json({ limit: '12mb' });
 
 export function createApp(options: AppOptions) {
   const { ai, aiResolver, rateLimitStore, allowedOrigins } = options;
@@ -68,15 +72,19 @@ export function createApp(options: AppOptions) {
   // Campaign OS saves need a larger body; that route has its own parser, mounted first.
   app.use('/api', (req, res, next) =>
     (req.method === 'PUT' && /\/(campaign-os|campaign-assets\/[^/]+)$/.test(req.path)) ||
-    req.path === '/billing/stripe/webhook'
+    req.path === '/billing/stripe/webhook' ||
+    /\/media\/voices\/clone$/.test(req.path)
       ? next()
-      : jsonParser(req, res, next),
+      : /\/media\/videos$/.test(req.path)
+        ? videoJsonParser(req, res, next) // may carry an uploaded avatar as a data: URL
+        : jsonParser(req, res, next),
   );
   app.use('/api', metaRoutes(resolver));
   app.use('/api', workspaceRoutes());
   app.use('/api', billingRoutes());
   app.use('/api', paymentRoutes(options.paymentsFetch));
   app.use('/api', socialRoutes(options.socialFetch));
+  app.use('/api', mediaRoutes(options.mediaFetch));
   app.use('/api', aiRoutes(resolver));
   app.use('/api', aiSettingsRoutes(resolver));
   app.use('/api', imageRoutes(resolver));

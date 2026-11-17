@@ -1,49 +1,5 @@
 // Sample presets and showcase data for the AI Influencer Studio.
 
-// Pre-configured Voice Models List
-export const voiceModelOptions = [
-  {
-    id: 'elevenlabs-rachel',
-    name: 'ElevenLabs - Rachel',
-    category: 'Neural High-Clarity',
-    tone: 'Warm, confident, tech-savvy',
-    badge: 'Most Popular',
-    sampleUrl: '#',
-  },
-  {
-    id: 'elevenlabs-adam',
-    name: 'ElevenLabs - Adam',
-    category: 'Deep Executive Resonance',
-    tone: 'Authoritative, calm, cinematic',
-    badge: 'B2B Enterprise',
-    sampleUrl: '#',
-  },
-  {
-    id: 'gemini-speech-v3',
-    name: 'Gemini Multimodal Speech v3',
-    category: 'Expressive Conversational',
-    tone: 'Dynamic, natural cadence, emotive',
-    badge: 'Low Latency',
-    sampleUrl: '#',
-  },
-  {
-    id: 'azure-neural-jenny',
-    name: 'Azure Neural Studio - Jenny',
-    category: 'Broadcast Broadcast',
-    tone: 'Crisp editorial newsreader',
-    badge: 'Standard',
-    sampleUrl: '#',
-  },
-  {
-    id: 'custom-voice-clone',
-    name: 'Custom LoRA Voice Clone (Uploaded)',
-    category: 'Zero-Shot Reference Match',
-    tone: '100% Personal Reference Match',
-    badge: 'Custom Clone',
-    sampleUrl: '#',
-  },
-];
-
 // Moving 3D Marketing Campaign Showpiece Data
 export const running3DCampaigns = [
   {

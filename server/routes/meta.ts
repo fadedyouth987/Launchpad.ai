@@ -7,6 +7,7 @@ import { PROVIDER_ORDER, serverConfigured, serverDefaultImageProvider, serverDef
 import { keyStorageEnabled } from '../llm/secrets';
 import { paymentsEnabled } from '../payments';
 import { socialEnabled } from '../social/service';
+import { videoEnabled, voiceEnabled } from '../media/service';
 import { emailEnabled } from '../email';
 import { WEBHOOK_DELIVERY_ENABLED } from '../webhookDelivery';
 
@@ -59,6 +60,8 @@ export function metaRoutes(resolver: AiResolver) {
         backgroundJobs: false,
         payments: paymentsEnabled(),
         socialPublishing: socialEnabled('linkedin'),
+        voice: voiceEnabled(),
+        video: videoEnabled(),
         email: emailEnabled(),
         webhookDelivery: WEBHOOK_DELIVERY_ENABLED,
       },

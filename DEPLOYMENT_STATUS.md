@@ -20,10 +20,12 @@ This repo is the source of truth for what is live. If you deploy from anywhere e
 2. **LinkedIn posting + automatic scheduler.** Migration `005_social.sql`; create the LinkedIn app and set
    `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `LINKEDIN_REDIRECT_URI` (+ `AI_KEYS_ENCRYPTION_KEY`).
    `neon deploy` creates the every-minute `publish-due` trigger.
-3. Also new: only owners/admins/approvers can approve or schedule posts (enforced by the API).
+3. **AI voices + talking videos (ElevenLabs + D-ID).** Migration `006_media.sql`; set `ELEVENLABS_API_KEY`,
+   `DID_API_KEY` and (optional) `PUBLIC_API_URL`.
+4. Also new: only owners/admins/approvers can approve or schedule posts (enforced by the API).
 
 To ship: `npm run db:migrate` on **both** Neon projects, then `npm run deploy:api` and `npm run deploy:web`.
-Details: `HOW_TO_RUN.md` → Payments and Social publishing.
+Details: `HOW_TO_RUN.md` → Payments, Social publishing, and AI voices and talking videos.
 
 Deploy commands: `npm run deploy:web` (Cloudflare), `npm run deploy:api` (Neon),
 `npm run db:migrate` (database). See `HOW_TO_RUN.md`.

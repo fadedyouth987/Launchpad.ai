@@ -363,6 +363,35 @@ How it works:
   access fully.
 - Scheduled times are picked in the user's local time and stored in UTC.
 
+## AI voices and talking videos (ElevenLabs + D-ID)
+
+On AI Influencers > Voice: pick an ElevenLabs voice (or clone one), hear it, and turn the influencer's photo into a
+talking-head video of any script. The chosen voice is saved with the influencer.
+
+1. **Voices:** set `ELEVENLABS_API_KEY` (https://elevenlabs.io/app/settings/api-keys). Optional `ELEVENLABS_MODEL`
+   (default `eleven_multilingual_v2`). Cloning needs a paid ElevenLabs plan.
+2. **Videos:** also set `DID_API_KEY` (D-ID Studio > API, the key exactly as shown) and `AI_KEYS_ENCRYPTION_KEY` or
+   `MEDIA_URL_SECRET`. D-ID downloads the photo and the audio from this API through signed links that expire after
+   one hour (`GET /api/public/media/:id?exp&sig`, never videos), so the API must be reachable from the internet:
+   set `PUBLIC_API_URL` to its https origin (on Neon Functions the request host is used when unset). A local
+   `npm run dev` server cannot make videos.
+3. Run `npm run db:migrate` (adds `006_media.sql`) and redeploy.
+
+How it works:
+
+- **Credits:** a speech clip costs `AI_VOICE_COST_CREDITS` (5), a video `AI_VIDEO_COST_CREDITS` (60, including its
+  speech). Credits are reserved first and refunded if ElevenLabs or D-ID fails, the render is rejected, or it does
+  not finish within 20 minutes.
+- **Video rendering is asynchronous:** the video row stays "processing"; the browser polls it every 5 s and the
+  minute scheduler (`publish-due`) also checks D-ID, so videos finish even if nobody is watching. The MP4 is copied
+  into Postgres because D-ID's result links expire.
+- **Cloned voices** belong to the server's ElevenLabs account but each workspace only sees its own clones (table
+  `workspace_voices`). Cloning (owners/admins) needs a confirmation that the member has the speaker's permission;
+  it is recorded in the audit log. Deleting a cloned voice also deletes it at ElevenLabs.
+- Photos: an https image URL is passed to D-ID directly; uploaded (`data:`) and generated images are copied and
+  served through a signed link. Use a clear, front-facing photo with one face.
+- Files live in Postgres (`generated_media`, up to 50 MB each). For heavy video use, move them to object storage.
+
 ## Team invitations (email)
 
 Owners and admins invite by email from the Team page (only the owner can invite admins). The link

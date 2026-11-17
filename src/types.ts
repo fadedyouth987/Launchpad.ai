@@ -119,6 +119,9 @@ export interface InfluencerVoiceProfile {
   speed: number;
   accent: string;
   samplePhrase: string;
+  /** ElevenLabs voice used for this influencer's speech and videos. */
+  voiceId?: string;
+  voiceName?: string;
 }
 
 export interface AIInfluencer {

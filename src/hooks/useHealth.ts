@@ -16,6 +16,8 @@ export interface Health {
     database: boolean;
     payments: boolean;
     socialPublishing: boolean;
+    voice?: boolean;
+    video?: boolean;
     webhookDelivery: boolean;
   };
 }

@@ -1,6 +1,17 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { AIInfluencer, Platform, Workspace } from '../../types';
 import { newId } from '../../lib/ids';
+import {
+  cloneVoice,
+  createSpeech,
+  createVideo,
+  deleteClonedVoice,
+  fetchMediaItem,
+  fetchMediaList,
+  fetchVoices,
+  type MediaItem,
+  type VoicesResponse,
+} from '../../lib/mediaApi';
 
 export interface InfluencerStudioProps {
   currentWorkspace: Workspace;
@@ -88,11 +99,73 @@ export function useInfluencerStudio({
     );
   };
 
-  // Reads the sample phrase with the browser's built-in speech synthesis. This is a local preview only:
-  // no AI voice model is connected, so it does not sound like the selected voice.
-  const handlePlayVoicePreview = () => {
+  // ---- AI voice (ElevenLabs) and talking video (D-ID) ----
+  const wsId = currentWorkspace.id;
+  const [voices, setVoices] = useState<VoicesResponse | null>(null);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('');
+  const [previewMedia, setPreviewMedia] = useState<MediaItem | null>(null);
+  const [cloneName, setCloneName] = useState('');
+  const [cloneConsent, setCloneConsent] = useState(false);
+  const [cloneFile, setCloneFile] = useState<File | null>(null);
+  const [cloning, setCloning] = useState(false);
+  const [videoScript, setVideoScript] = useState(
+    'Hi, I am Sophia. In thirty seconds I will show you how our agents ship code reviews while you sleep.',
+  );
+  const [videoBusy, setVideoBusy] = useState(false);
+  const [videos, setVideos] = useState<MediaItem[]>([]);
+
+  const allVoices = voices ? [...voices.cloned, ...voices.standard] : [];
+  const selectedVoice = allVoices.find((v) => v.id === selectedVoiceId) ?? null;
+
+  const loadVoices = useCallback(async () => {
+    const r = await fetchVoices(wsId);
+    if (typeof r === 'string') return setVoiceError(r);
+    setVoices(r);
+    setSelectedVoiceId((cur) => cur || r.cloned[0]?.id || r.standard[0]?.id || '');
+  }, [wsId]);
+
+  const loadVideos = useCallback(async () => {
+    const r = await fetchMediaList(wsId);
+    if (typeof r !== 'string') setVideos(r.filter((m) => m.kind === 'video').slice(0, 6));
+  }, [wsId]);
+
+  useEffect(() => {
+    void loadVoices();
+    void loadVideos();
+  }, [loadVoices, loadVideos]);
+
+  // Poll videos that are still rendering (D-ID usually takes under a minute).
+  const pollTimer = useRef<number | null>(null);
+  useEffect(() => {
+    const pending = videos.filter((v) => v.status === 'processing');
+    if (!pending.length) return;
+    pollTimer.current = window.setTimeout(async () => {
+      const updated = await Promise.all(pending.map((v) => fetchMediaItem(wsId, v.id)));
+      setVideos((prev) =>
+        prev.map((v) => updated.find((u): u is MediaItem => typeof u !== 'string' && u.id === v.id) ?? v),
+      );
+    }, 5000);
+    return () => {
+      if (pollTimer.current) window.clearTimeout(pollTimer.current);
+    };
+  }, [videos, wsId]);
+
+  // Speaks the sample phrase with the selected ElevenLabs voice (charged), or with the browser's own
+  // voice when AI voices are not set up on the server (free, does not sound like the persona).
+  const handlePlayVoicePreview = async () => {
+    if (!samplePhrase.trim()) return;
+    if (voices?.enabled.voice && selectedVoiceId) {
+      setIsPlayingAudio(true);
+      setVoiceError(null);
+      const r = await createSpeech(wsId, { voiceId: selectedVoiceId, text: samplePhrase, speed });
+      setIsPlayingAudio(false);
+      if (typeof r === 'string') return setVoiceError(r);
+      setPreviewMedia(r.media);
+      return;
+    }
     const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
-    if (!synth || !samplePhrase.trim()) return;
+    if (!synth) return;
     synth.cancel();
     const utterance = new SpeechSynthesisUtterance(samplePhrase);
     utterance.onend = () => setIsPlayingAudio(false);
@@ -102,15 +175,44 @@ export function useInfluencerStudio({
   };
 
   const handleSimulateVoiceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setUploadedVoiceFile({
-        name: file.name,
-        size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-        duration: 'not analysed',
-      });
-      // Voice cloning is not built: the file is only noted in this browser, never uploaded or processed.
-    }
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCloneFile(file);
+    setUploadedVoiceFile({ name: file.name, size: (file.size / (1024 * 1024)).toFixed(2) + ' MB', duration: '' });
+    if (!cloneName) setCloneName(`${name} voice`);
+  };
+
+  const handleCloneVoice = async () => {
+    if (!cloneFile || !cloneConsent || !cloneName.trim()) return;
+    if (cloneFile.size > 10 * 1024 * 1024) return setVoiceError('The sample must be under 10 MB.');
+    setCloning(true);
+    setVoiceError(null);
+    const r = await cloneVoice(wsId, cloneName.trim(), cloneFile);
+    setCloning(false);
+    if (typeof r === 'string') return setVoiceError(r);
+    setCloneFile(null);
+    setUploadedVoiceFile(null);
+    setCloneConsent(false);
+    await loadVoices();
+    setSelectedVoiceId(r.id);
+  };
+
+  const handleDeleteClonedVoice = async (voiceId: string) => {
+    if (!window.confirm('Delete this cloned voice? Influencers using it will need a new voice.')) return;
+    const err = await deleteClonedVoice(wsId, voiceId);
+    if (err) return setVoiceError(err);
+    if (selectedVoiceId === voiceId) setSelectedVoiceId('');
+    await loadVoices();
+  };
+
+  const handleGenerateVideo = async () => {
+    if (!selectedVoiceId || !videoScript.trim() || videoBusy) return;
+    setVideoBusy(true);
+    setVoiceError(null);
+    const r = await createVideo(wsId, { voiceId: selectedVoiceId, text: videoScript, speed, imageUrl: avatarUrl });
+    setVideoBusy(false);
+    if (typeof r === 'string') return setVoiceError(r);
+    setVideos((prev) => [r.media, ...prev].slice(0, 6));
   };
 
   const handleSaveConstructorDraft = () => {
@@ -139,6 +241,7 @@ export function useInfluencerStudio({
         speed,
         accent,
         samplePhrase,
+        ...(selectedVoice ? { voiceId: selectedVoice.id, voiceName: selectedVoice.name } : {}),
       },
       postsGeneratedCount: 0,
       avgEngagementRate: '5.8%',
@@ -231,6 +334,25 @@ export function useInfluencerStudio({
     selectedInfluencerForPublish,
     setSelectedInfluencerForPublish,
     handleRandomizeSeed,
+    voices,
+    voiceError,
+    selectedVoiceId,
+    setSelectedVoiceId,
+    selectedVoice,
+    previewMedia,
+    cloneName,
+    setCloneName,
+    cloneConsent,
+    setCloneConsent,
+    cloneFile,
+    cloning,
+    handleCloneVoice,
+    handleDeleteClonedVoice,
+    videoScript,
+    setVideoScript,
+    videoBusy,
+    videos,
+    handleGenerateVideo,
     handlePlayVoicePreview,
     handleSimulateVoiceUpload,
     handleSaveConstructorDraft,

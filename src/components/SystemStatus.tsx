@@ -93,8 +93,12 @@ function capabilities(h: Health | null): { area: string; state: State; detail: s
     },
     {
       area: 'Voice and video avatars',
-      state: 'missing',
-      detail: 'Voice and face rendering are not built. Influencer settings are stored only.',
+      state: on('voice') ? 'works' : 'key',
+      detail: on('video')
+        ? 'ElevenLabs voices (standard or cloned with consent) and D-ID talking-head videos from the influencer photo, on the AI Influencers > Voice tab.'
+        : on('voice')
+          ? 'ElevenLabs voices work. Talking-head videos also need DID_API_KEY.'
+          : 'Built, but needs ELEVENLABS_API_KEY (voices) and DID_API_KEY (talking videos).',
     },
   ];
 }

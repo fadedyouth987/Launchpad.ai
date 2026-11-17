@@ -44,6 +44,14 @@ const OPTIONAL_ENV = [
   'LINKEDIN_REDIRECT_URI',
   'LINKEDIN_API_VERSION',
   'CRON_SECRET',
+  // AI voice (ElevenLabs) and talking-head video (D-ID)
+  'ELEVENLABS_API_KEY',
+  'ELEVENLABS_MODEL',
+  'DID_API_KEY',
+  'MEDIA_URL_SECRET',
+  'PUBLIC_API_URL',
+  'AI_VOICE_COST_CREDITS',
+  'AI_VIDEO_COST_CREDITS',
   // Email (Resend): invitation emails
   'RESEND_API_KEY',
   'EMAIL_FROM',
