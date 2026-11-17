@@ -31,11 +31,12 @@ const OPTIONAL_ENV = [
   'AI_ASSIST_COST_CREDITS',
   'AI_IMAGE_COST_CREDITS',
   'NEW_WORKSPACE_CREDITS',
-  // Payments (Stripe Checkout credit packs)
+  // Payments (Stripe credit packs and monthly plans)
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
   'STRIPE_CURRENCY',
   'CREDIT_PACKS',
+  'PLAN_PRICES',
   'PUBLIC_APP_URL',
   // Email (Resend): invitation emails
   'RESEND_API_KEY',
