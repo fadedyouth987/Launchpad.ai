@@ -75,13 +75,14 @@ function capabilities(h: Health | null): { area: string; state: State; detail: s
       area: 'Analytics',
       state: 'works',
       detail:
-        'Real workspace numbers (assets, approvals, schedule, AI usage, credits). Reach and engagement need social network APIs, which are not connected.',
+        'Real workspace numbers (assets, approvals, schedule, AI usage, credits). Reach and engagement figures from social networks are not collected yet.',
     },
     {
       area: 'Direct social posting',
-      state: 'missing',
-      detail:
-        'No social network accounts are connected; the scheduler and approvals emit webhooks for an external poster instead.',
+      state: on('socialPublishing') ? 'works' : 'key',
+      detail: on('socialPublishing')
+        ? 'LinkedIn: connect a profile on the Publisher page; approved posts scheduled for LinkedIn are posted automatically each minute (with their image). Other networks get signed webhooks for Zapier, Make or Buffer.'
+        : 'LinkedIn posting is built but needs LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET, LINKEDIN_REDIRECT_URI and AI_KEYS_ENCRYPTION_KEY. Other networks get signed webhooks.',
     },
     {
       area: 'Paid plans',

@@ -173,6 +173,16 @@ export function checkConfig(env: NodeJS.ProcessEnv = process.env): ConfigReport 
         (encKey ? ' unless a workspace saves its own key.' : '.'),
     );
   }
+  const linkedinVars = ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET', 'LINKEDIN_REDIRECT_URI'];
+  const linkedinSet = linkedinVars.filter((n) => realValue(env[n]));
+  if (linkedinSet.length && linkedinSet.length < linkedinVars.length) {
+    warnings.push(`LinkedIn posting is off: set all of ${linkedinVars.join(', ')}.`);
+  } else if (linkedinSet.length && !encKey) {
+    warnings.push('LinkedIn posting is off: AI_KEYS_ENCRYPTION_KEY is needed to store LinkedIn tokens encrypted.');
+  }
+  if (realValue(env.LINKEDIN_REDIRECT_URI) && !/\/api\/social\/linkedin\/callback$/.test(env.LINKEDIN_REDIRECT_URI!)) {
+    warnings.push('LINKEDIN_REDIRECT_URI should end with /api/social/linkedin/callback (on the API origin).');
+  }
   // Neon Functions: no trustworthy client IP (X-Forwarded-For is client-controlled), so TRUST_PROXY
   // must stay off there; per-user limits use the verified JWT subject.
   const onNeonFunctions = env.LAUNCHPAD_RUNTIME === 'neon-functions';

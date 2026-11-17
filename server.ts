@@ -60,6 +60,22 @@ async function main() {
     console.log(`[auth] Neon Auth JWT verification enabled; Postgres driver: ${DATABASE_DRIVER}.`);
   }
 
+  // Long-running server (local dev, Docker, Cloud Run with min instances): run the social publish
+  // scheduler in-process every minute. On Neon Functions the neon.ts trigger does this instead.
+  // PUBLISH_SCHEDULER=off disables it (e.g. when an external cron calls /api/internal/publish-due).
+  if (!DEMO_MODE && AUTH_CONFIGURED && process.env.PUBLISH_SCHEDULER !== 'off') {
+    const { publishDue } = await import('./server/social/service');
+    let running = false;
+    setInterval(() => {
+      if (running) return;
+      running = true;
+      publishDue()
+        .then((o) => o.checked && console.log(`[social] scheduler: ${o.published} published, ${o.failed} failed`))
+        .catch((err) => console.error('[social] scheduler failed:', (err as Error).message))
+        .finally(() => (running = false));
+    }, 60_000).unref();
+  }
+
   const server: Server = app.listen(PORT, '0.0.0.0', () => {
     console.log(
       `Launchpad server listening on port ${PORT} (AI default: ${serverDefaultProvider() ?? 'none, sample output'})`,

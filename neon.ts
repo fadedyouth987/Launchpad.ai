@@ -38,6 +38,12 @@ const OPTIONAL_ENV = [
   'CREDIT_PACKS',
   'PLAN_PRICES',
   'PUBLIC_APP_URL',
+  // Direct social publishing (LinkedIn) and the publish scheduler
+  'LINKEDIN_CLIENT_ID',
+  'LINKEDIN_CLIENT_SECRET',
+  'LINKEDIN_REDIRECT_URI',
+  'LINKEDIN_API_VERSION',
+  'CRON_SECRET',
   // Email (Resend): invitation emails
   'RESEND_API_KEY',
   'EMAIL_FROM',
@@ -69,6 +75,16 @@ export default defineConfig({
         AI_GATEWAY_ENABLED: process.env.AI_GATEWAY_ENABLED || 'false',
         ...optionalEnv,
       },
+    },
+  },
+  // Every minute, publish scheduled posts whose time has come (POST /api/internal/publish-due; a no-op
+  // when nothing is due or no LinkedIn account is connected). The call carries Neon's trigger header.
+  triggers: {
+    'publish-due': {
+      type: 'schedule',
+      function: 'api',
+      cron: '* * * * *',
+      functionPath: '/api/internal/publish-due',
     },
   },
   // Branch policy: per-branch tuning

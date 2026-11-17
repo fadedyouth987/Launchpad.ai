@@ -6,6 +6,7 @@ import type { AiResolver } from '../llm/resolver';
 import { PROVIDER_ORDER, serverConfigured, serverDefaultImageProvider, serverDefaultProvider } from '../llm/catalog';
 import { keyStorageEnabled } from '../llm/secrets';
 import { paymentsEnabled } from '../payments';
+import { socialEnabled } from '../social/service';
 import { emailEnabled } from '../email';
 import { WEBHOOK_DELIVERY_ENABLED } from '../webhookDelivery';
 
@@ -57,7 +58,7 @@ export function metaRoutes(resolver: AiResolver) {
         database: DATABASE_CONFIGURED && !DEMO_MODE,
         backgroundJobs: false,
         payments: paymentsEnabled(),
-        socialPublishing: false,
+        socialPublishing: socialEnabled('linkedin'),
         email: emailEnabled(),
         webhookDelivery: WEBHOOK_DELIVERY_ENABLED,
       },

@@ -29,6 +29,7 @@ import { SidebarNav } from './components/SidebarNav';
 import { TopHeaderBar } from './components/TopHeaderBar';
 import { TopUpModal } from './components/Modals/TopUpModal';
 import { PlanModal } from './components/Modals/PlanModal';
+import { publishAssetNow } from './lib/socialApi';
 import { FloatingMarketingWidget } from './components/FloatingMarketingWidget';
 import { newId } from './lib/ids';
 import { findNavItem, type PageAction } from './navigation';
@@ -298,6 +299,19 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
   const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const social = params.get('social');
+    if (social) {
+      const reason = params.get('reason') || '';
+      setCheckoutNotice(
+        social === 'connected'
+          ? 'LinkedIn connected. Approved posts scheduled for LinkedIn will now be published automatically.'
+          : reason === 'cancelled'
+            ? 'LinkedIn connection cancelled.'
+            : `LinkedIn could not be connected (${reason || 'unknown error'}). Try again, or ask the server admin to check the LinkedIn app settings.`,
+      );
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.hash}`);
+      return;
+    }
     const state = params.get('checkout');
     if (!state) return;
     setCheckoutNotice(
@@ -412,16 +426,28 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
   };
 
   // Helper: Publish Now
-  const handlePublishNow = (assetId: string) => {
-    applyAssets((prev) => prev.map((a) => (a.id === assetId ? { ...a, status: 'published' } : a)));
-
-    const targetAsset = campaignAssets.find((a) => a.id === assetId);
-    if (targetAsset) {
-      logAudit({
-        action: 'asset.status.published',
-        details: `Marked "${targetAsset.title}" as published on ${targetAsset.platform.toUpperCase()} (social publishing is not connected; nothing was posted).`,
-      });
+  // LinkedIn posts (signed-in sessions) are really published by the server; the server also marks the
+  // asset published. Other platforms are only marked published here (their webhook hands them off).
+  const handlePublishNow = async (assetId: string) => {
+    const targetAsset = assetsRef.current.find((a) => a.id === assetId);
+    if (!targetAsset) return;
+    if (session.mode === 'account' && targetAsset.platform === 'linkedin') {
+      const r = await publishAssetNow(currentWorkspace.id, assetId);
+      if (!r.ok) {
+        setSyncError(`LinkedIn: ${r.message}`);
+        return;
+      }
+      const next = assetsRef.current.map((a) => (a.id === assetId ? { ...a, status: 'published' as const } : a));
+      assetsRef.current = next;
+      setCampaignAssets(next);
+      setCheckoutNotice(`Posted "${targetAsset.title}" to LinkedIn.`);
+      return;
     }
+    applyAssets((prev) => prev.map((a) => (a.id === assetId ? { ...a, status: 'published' } : a)));
+    logAudit({
+      action: 'asset.status.published',
+      details: `Marked "${targetAsset.title}" as published on ${targetAsset.platform.toUpperCase()} (not posted directly; webhook receivers are notified).`,
+    });
   };
 
   // Member roles and legal hold are changed on the server (owner/admin only, audited).

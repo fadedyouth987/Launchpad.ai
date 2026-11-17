@@ -1,110 +1,256 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { CampaignAsset, Workspace } from '../types';
 import {
   Send,
   Clock,
   Globe,
   Linkedin,
-  Instagram,
-  Twitter,
-  Facebook,
-  Video,
   Sparkles,
   Smartphone,
   Bot,
+  ExternalLink,
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Unplug,
 } from 'lucide-react';
+import {
+  disconnectSocialAccount,
+  fetchSocialAccounts,
+  fetchSocialPosts,
+  startLinkedInConnect,
+  type SocialAccount,
+  type SocialPost,
+} from '../lib/socialApi';
 
 interface SocialPublisherProps {
   currentWorkspace: Workspace;
   assets: CampaignAsset[];
-  onPublishNow: (assetId: string) => void;
+  /** Publishes (LinkedIn: really posts) and resolves when done. */
+  onPublishNow: (assetId: string) => void | Promise<void>;
 }
+
+const daysLeft = (iso: string | null) =>
+  iso ? Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 86_400_000)) : null;
 
 export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspace, assets, onPublishNow }) => {
   const [previewAssetId, setPreviewAssetId] = useState<string | null>(null);
+  const [available, setAvailable] = useState(false);
+  const [accounts, setAccounts] = useState<SocialAccount[]>([]);
+  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const workspaceAssets = assets.filter((a) => a.workspaceId === currentWorkspace.id);
   const scheduledAssets = workspaceAssets.filter((a) => a.status === 'scheduled' || a.status === 'approved');
+  const recentPosts = posts.slice(0, 8);
 
   const selectedAsset =
     workspaceAssets.find((a) => a.id === previewAssetId) || scheduledAssets[0] || workspaceAssets[0] || null;
 
-  // Social Channels Status Mock
-  const channels = [
-    {
-      platform: 'linkedin',
-      handle: 'Acme Corp (Company Page)',
-      status: 'Active',
-      icon: <Linkedin className="w-4 h-4 text-blue-400" />,
-      tokenExpires: 'in 58 days',
-    },
-    {
-      platform: 'instagram',
-      handle: '@acme_official',
-      status: 'Active',
-      icon: <Instagram className="w-4 h-4 text-pink-400" />,
-      tokenExpires: 'in 42 days',
-    },
-    {
-      platform: 'tiktok',
-      handle: '@acmetok_global',
-      status: 'Active',
-      icon: <Video className="w-4 h-4 text-teal-400" />,
-      tokenExpires: 'in 30 days',
-    },
-    {
-      platform: 'twitter',
-      handle: '@acme_tech',
-      status: 'Active',
-      icon: <Twitter className="w-4 h-4 text-sky-400" />,
-      tokenExpires: 'in 85 days',
-    },
-    {
-      platform: 'facebook',
-      handle: 'Acme Brand Page',
-      status: 'Active',
-      icon: <Facebook className="w-4 h-4 text-indigo-300" />,
-      tokenExpires: 'in 60 days',
-    },
-  ];
+  const linkedin = accounts.find((a) => a.provider === 'linkedin') ?? null;
+  const postFor = (assetId: string) => posts.find((p) => p.assetId === assetId);
+
+  const refresh = useCallback(async () => {
+    const [a, p] = await Promise.all([fetchSocialAccounts(currentWorkspace.id), fetchSocialPosts(currentWorkspace.id)]);
+    if (typeof a !== 'string') {
+      setAvailable(a.available.linkedin);
+      setAccounts(a.accounts);
+    }
+    if (typeof p !== 'string') setPosts(p);
+  }, [currentWorkspace.id]);
+
+  useEffect(() => {
+    void refresh();
+    const t = window.setInterval(refresh, 30_000);
+    return () => window.clearInterval(t);
+  }, [refresh]);
+
+  const connect = async () => {
+    setBusy('connect');
+    setError(null);
+    const r = await startLinkedInConnect(currentWorkspace.id);
+    if (typeof r === 'string') {
+      setBusy(null);
+      setError(r);
+      return;
+    }
+    window.location.assign(r.url);
+  };
+
+  const disconnect = async (id: string) => {
+    if (!window.confirm('Disconnect LinkedIn? Scheduled LinkedIn posts will not go out until it is reconnected.'))
+      return;
+    setBusy('disconnect');
+    const err = await disconnectSocialAccount(currentWorkspace.id, id);
+    setBusy(null);
+    if (err) setError(err);
+    void refresh();
+  };
+
+  const publish = async (assetId: string) => {
+    setBusy(assetId);
+    await onPublishNow(assetId);
+    setBusy(null);
+    void refresh();
+  };
+
+  const linkedinDays = daysLeft(linkedin?.tokenExpiresAt ?? null);
 
   return (
     <div className="space-y-8 w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800/60">
-              Auto Dispatch Engine
-            </span>
-          </div>
           <p className="text-sm text-ink-muted">
-            Schedule, preview, and dispatch multi-platform content across active enterprise channel tokens.
+            Approved posts scheduled for LinkedIn are published automatically at their scheduled time. Other networks
+            are handed off through webhooks (Zapier, Make, Buffer).
           </p>
         </div>
-
         <div className="flex items-center space-x-2 text-xs text-slate-400 bg-slate-900 border border-slate-800 px-3.5 py-2 rounded-xl">
           <Globe className="w-4 h-4 text-emerald-400" />
-          <span>5 Active Accounts Connected</span>
+          <span>
+            {accounts.length} account{accounts.length === 1 ? '' : 's'} connected
+          </span>
         </div>
       </div>
 
-      {/* Social Accounts Status Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {channels.map((ch) => (
-          <div key={ch.platform} className="bg-slate-900 border border-slate-800 p-3 rounded-xl space-y-1 text-xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1.5">
-                {ch.icon}
-                <span className="font-bold text-slate-200 capitalize">{ch.platform}</span>
-              </div>
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+      {/* Connected accounts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div
+          className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-3 text-xs"
+          data-testid="linkedin-card"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Linkedin className="w-4 h-4 text-blue-400" />
+              <span className="font-bold text-slate-200">LinkedIn</span>
             </div>
-            <p className="text-2xs text-slate-400 font-medium truncate">{ch.handle}</p>
-            <span className="text-2xs text-slate-400 block">Token valid: {ch.tokenExpires}</span>
+            <span
+              className={`w-2 h-2 rounded-full ${
+                linkedin && !linkedin.expired ? 'bg-emerald-400' : linkedin ? 'bg-amber-400' : 'bg-slate-600'
+              }`}
+            />
           </div>
-        ))}
+          {linkedin ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center space-x-2 min-w-0">
+                {linkedin.avatarUrl && (
+                  <img src={linkedin.avatarUrl} alt="" className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" />
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm text-slate-100 font-semibold truncate">{linkedin.displayName}</p>
+                  <p
+                    className={`text-2xs ${linkedin.expired || (linkedinDays ?? 99) < 7 ? 'text-amber-300' : 'text-slate-400'}`}
+                  >
+                    {linkedin.expired
+                      ? 'Access expired: reconnect to keep posting'
+                      : `Access valid for ${linkedinDays} more day${linkedinDays === 1 ? '' : 's'}`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  onClick={connect}
+                  disabled={Boolean(busy)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold disabled:opacity-60"
+                >
+                  Reconnect
+                </button>
+                <button
+                  onClick={() => disconnect(linkedin.id)}
+                  disabled={Boolean(busy)}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900 text-slate-300 disabled:opacity-60"
+                  aria-label="Disconnect LinkedIn"
+                  title="Disconnect"
+                >
+                  <Unplug className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ) : available ? (
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-slate-400">Post as your LinkedIn profile. Owners and admins can connect.</p>
+              <button
+                onClick={connect}
+                disabled={Boolean(busy)}
+                data-testid="linkedin-connect"
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shrink-0 disabled:opacity-60"
+              >
+                {busy === 'connect' ? 'Opening LinkedIn…' : 'Connect LinkedIn'}
+              </button>
+            </div>
+          ) : (
+            <p className="text-slate-400">
+              Not set up on this server. The admin needs LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET,
+              LINKEDIN_REDIRECT_URI and AI_KEYS_ENCRYPTION_KEY (see HOW_TO_RUN.md).
+            </p>
+          )}
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2 text-xs">
+          <span className="font-bold text-slate-200">Instagram, TikTok, X, Facebook</span>
+          <p className="text-slate-400">
+            Not posted directly yet. When a post is approved, scheduled or published, Launchpad sends a signed webhook
+            your Zapier, Make or Buffer automation can post from (Settings → Security & Webhooks).
+          </p>
+        </div>
       </div>
+
+      {error && (
+        <p className="text-sm font-semibold text-rose-300" role="alert">
+          {error}
+        </p>
+      )}
+
+      {recentPosts.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+          <h3 className="text-xs font-bold text-slate-200">Recent LinkedIn activity</h3>
+          <ul className="space-y-1.5 text-xs">
+            {recentPosts.map((p) => {
+              const a = workspaceAssets.find((x) => x.id === p.assetId);
+              return (
+                <li key={p.id} className="flex items-center justify-between gap-3">
+                  <span className="flex items-center space-x-2 min-w-0">
+                    {p.status === 'published' ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    ) : p.status === 'failed' ? (
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    ) : (
+                      <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin shrink-0" />
+                    )}
+                    <span className="text-slate-200 truncate">{a?.title ?? p.assetId}</span>
+                    {p.status === 'failed' && p.error && <span className="text-amber-300 truncate">· {p.error}</span>}
+                  </span>
+                  <span className="flex items-center space-x-2 shrink-0 text-slate-400">
+                    <span>{new Date(p.updatedAt).toLocaleString()}</span>
+                    {p.externalUrl && (
+                      <a
+                        href={p.externalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-300 hover:text-blue-200 flex items-center space-x-1"
+                      >
+                        <span>View</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                    {p.status === 'failed' && a && (
+                      <button
+                        onClick={() => publish(a.id)}
+                        disabled={Boolean(busy)}
+                        className="text-indigo-300 hover:text-indigo-200 font-semibold disabled:opacity-60"
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Scheduled Content Calendar (7 Cols) */}
@@ -114,7 +260,11 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
               <Clock className="w-4 h-4 text-indigo-300" />
               <span>Approved & Scheduled Queue ({scheduledAssets.length})</span>
             </h3>
-            <span className="text-xs text-ink-subtle">Auto-publishes at scheduled timestamps</span>
+            <span className="text-xs text-ink-subtle">
+              {linkedin
+                ? 'LinkedIn posts go out automatically at their scheduled time'
+                : 'Connect LinkedIn to auto-post'}
+            </span>
           </div>
 
           <div className="space-y-3">
@@ -143,9 +293,32 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
                       </span>
                       <h4 className="text-xs font-bold text-slate-200 line-clamp-1">{asset.title}</h4>
                     </div>
-                    <span className="text-2xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded-full">
-                      Ready
-                    </span>
+                    {(() => {
+                      const p = postFor(asset.id);
+                      const direct = asset.platform === 'linkedin' && linkedin;
+                      const label =
+                        p?.status === 'failed'
+                          ? 'Failed'
+                          : p?.status === 'publishing'
+                            ? 'Posting…'
+                            : direct
+                              ? asset.status === 'scheduled'
+                                ? 'Auto-posts'
+                                : 'Approved'
+                              : 'Via webhook';
+                      const tone =
+                        p?.status === 'failed'
+                          ? 'text-amber-300 bg-amber-950/60 border-amber-800/60'
+                          : 'text-emerald-400 bg-emerald-950/60 border-emerald-800/60';
+                      return (
+                        <span
+                          className={`text-2xs font-mono border px-2 py-0.5 rounded-full ${tone}`}
+                          title={p?.error ?? undefined}
+                        >
+                          {label}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">{asset.caption}</p>
@@ -154,19 +327,20 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
                     <span className="text-slate-400">
                       Scheduled:{' '}
                       <strong className="text-slate-200">
-                        {asset.scheduledTime ? new Date(asset.scheduledTime).toLocaleDateString() : 'Immediate'}
+                        {asset.scheduledTime ? new Date(asset.scheduledTime).toLocaleString() : 'Not scheduled'}
                       </strong>
                     </span>
 
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onPublishNow(asset.id);
+                        void publish(asset.id);
                       }}
-                      className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center space-x-1"
+                      disabled={Boolean(busy)}
+                      className="disabled:opacity-60 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center space-x-1"
                     >
                       <Send className="w-3 h-3" />
-                      <span>Publish Now</span>
+                      <span>{busy === asset.id ? 'Posting…' : 'Publish Now'}</span>
                     </button>
                   </div>
                 </div>
@@ -196,8 +370,10 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
                     AC
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-white block">Acme Corp Official</span>
-                    <span className="text-2xs text-slate-400">Promoted • Enterprise SaaS</span>
+                    <span className="text-xs font-bold text-white block">
+                      {selectedAsset.platform === 'linkedin' && linkedin ? linkedin.displayName : currentWorkspace.name}
+                    </span>
+                    <span className="text-2xs text-slate-400">Preview</span>
                   </div>
                 </div>
                 <span className="text-2xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full capitalize">
@@ -233,7 +409,7 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
               {/* Device Footer Actions */}
               <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-2xs text-slate-400">
                 <span>Like • Comment • Repost</span>
-                <span className="text-emerald-400 font-medium">Token Status: Valid</span>
+                <span className="text-slate-400 font-medium">Preview only</span>
               </div>
             </div>
           ) : (

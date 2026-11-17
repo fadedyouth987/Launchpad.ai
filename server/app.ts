@@ -15,6 +15,7 @@ import { aiSettingsRoutes } from './routes/aiSettings';
 import { imageRoutes } from './routes/images';
 import { paymentRoutes } from './routes/payments';
 import { inviteRoutes } from './routes/invites';
+import { socialRoutes } from './routes/social';
 import { buildRateLimiters, setRateLimitStoreFactory, type RateLimitStoreFactory } from './rateLimit';
 
 export interface AppOptions {
@@ -27,6 +28,8 @@ export interface AppOptions {
   emailFetch?: typeof fetch;
   /** Tests: fetch used for Stripe API calls. */
   paymentsFetch?: typeof fetch;
+  /** Tests: fetch used for LinkedIn API calls. */
+  socialFetch?: typeof fetch;
   /** Tests: a custom provider resolver (takes precedence over `ai`). */
   aiResolver?: AiResolver;
   /** Shared rate-limit store (e.g. Redis) for multi-instance deployments. Default: in-memory. */
@@ -73,6 +76,7 @@ export function createApp(options: AppOptions) {
   app.use('/api', workspaceRoutes());
   app.use('/api', billingRoutes());
   app.use('/api', paymentRoutes(options.paymentsFetch));
+  app.use('/api', socialRoutes(options.socialFetch));
   app.use('/api', aiRoutes(resolver));
   app.use('/api', aiSettingsRoutes(resolver));
   app.use('/api', imageRoutes(resolver));

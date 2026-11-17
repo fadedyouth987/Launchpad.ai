@@ -13,10 +13,17 @@ This repo is the source of truth for what is live. If you deploy from anywhere e
 | API (Express)                | Neon Function (`neon.ts`, `npm run deploy:api`)                                                       | Yes                |
 | Database                     | Neon project **`launchpad-ai`** (`odd-surf-26973335`, ap-southeast-1), migrations `001`–`003` applied | Yes                |
 
-**Pending deploy (16–17 Nov):** monthly plan subscriptions (Stripe Billing) are in the code but not yet
-live. To ship: run migration `004_subscriptions.sql` on **both** Neon projects (`npm run db:migrate`), add the
-`customer.subscription.*` and `invoice.paid` events to the Stripe webhook, save the Stripe Customer portal
-once, then `npm run deploy:api` and `npm run deploy:web`. See `HOW_TO_RUN.md` → Payments.
+**Pending deploy (16–17 Nov), not live yet:**
+
+1. **Monthly plans (Stripe Billing).** Migration `004_subscriptions.sql`; add the `customer.subscription.*` and
+   `invoice.paid` events to the Stripe webhook; save the Stripe Customer portal once.
+2. **LinkedIn posting + automatic scheduler.** Migration `005_social.sql`; create the LinkedIn app and set
+   `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `LINKEDIN_REDIRECT_URI` (+ `AI_KEYS_ENCRYPTION_KEY`).
+   `neon deploy` creates the every-minute `publish-due` trigger.
+3. Also new: only owners/admins/approvers can approve or schedule posts (enforced by the API).
+
+To ship: `npm run db:migrate` on **both** Neon projects, then `npm run deploy:api` and `npm run deploy:web`.
+Details: `HOW_TO_RUN.md` → Payments and Social publishing.
 
 Deploy commands: `npm run deploy:web` (Cloudflare), `npm run deploy:api` (Neon),
 `npm run db:migrate` (database). See `HOW_TO_RUN.md`.

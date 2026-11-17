@@ -26,12 +26,19 @@ export async function listCampaignAssets(uid: string, workspaceId: string): Prom
 }
 
 /** Creates or updates an asset. Returns whether it was created. */
+/** Statuses that mean "cleared to go out". Scheduled LinkedIn posts are published automatically. */
+export const RELEASED_STATUSES = ['approved', 'scheduled', 'published'];
+/** Roles that may approve: move an asset into a released status from anything else. */
+export const APPROVER_ROLES = ['owner', 'admin', 'approver'] as const;
+
 export async function saveCampaignAsset(
   uid: string,
   workspaceId: string,
   asset: CampaignAsset & { userId?: string; createdAt?: string },
 ): Promise<{ created: boolean; previousStatus: string | null }> {
-  await assertRole(uid, workspaceId, WRITE_ROLES);
+  const ws = await assertRole(uid, workspaceId, WRITE_ROLES);
+  const needsApprover =
+    RELEASED_STATUSES.includes(asset.status) && !(APPROVER_ROLES as readonly string[]).includes(ws.role);
   if (DEMO_MODE) throw notInDemo();
   const { id, userId: _u, createdAt: _c, workspaceId: _w, ...fields } = asset;
   return withTx(async (c) => {
@@ -42,6 +49,16 @@ export async function saveCampaignAsset(
     );
     if (existing.rows.length && existing.rows[0].workspace_id !== workspaceId)
       throw new ApiError(409, 'ID_CONFLICT', 'That id belongs to another workspace.');
+    // Approval is enforced here, not only in the UI: only owners, admins and approvers can clear a post
+    // to go out. Editing an already-cleared post (e.g. rescheduling it) stays open to writers.
+    const prev = (existing.rows[0]?.status as string | undefined) ?? null;
+    if (needsApprover && !(prev && RELEASED_STATUSES.includes(prev))) {
+      throw new ApiError(
+        403,
+        'APPROVAL_REQUIRED',
+        'Only an owner, admin or approver can approve or schedule a post. Submit it for review instead.',
+      );
+    }
     if (!existing.rows.length) {
       const n = (await c.query('SELECT count(*)::int AS n FROM campaign_assets WHERE workspace_id = $1', [workspaceId]))
         .rows[0].n;

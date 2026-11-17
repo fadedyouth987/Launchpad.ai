@@ -323,6 +323,46 @@ first and each renewal invoice, or the credit difference for a paid upgrade, onc
 `stripe_<invoice id>`). Card changes, invoices and cancelling are in the Stripe billing portal ("Manage billing").
 Test locally with `stripe listen --forward-to localhost:3000/api/billing/stripe/webhook`.
 
+## Social publishing (LinkedIn)
+
+Approved posts for LinkedIn can be posted directly: "Publish now" on the Publisher page, or automatically when a
+**scheduled** post's time comes. Posts go out as the LinkedIn member who connected (personal profile). Company
+pages need LinkedIn's Community Management API approval and are not supported yet. Other networks keep using
+webhooks.
+
+1. Create an app at https://www.linkedin.com/developers/apps (it must be linked to a LinkedIn Page you admin; any
+   page works). Under **Products** add **Sign In with LinkedIn using OpenID Connect** and **Share on LinkedIn**
+   (both self-serve, approved instantly).
+2. Under **Auth**, add the redirect URL `<API URL>/api/social/linkedin/callback` (the Neon Function URL, not the
+   Cloudflare web app). Copy the client ID and secret.
+3. Set `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `LINKEDIN_REDIRECT_URI` (exactly as registered) and
+   `AI_KEYS_ENCRYPTION_KEY` (tokens are stored AES-256-GCM encrypted). Optional `LINKEDIN_API_VERSION` (YYYYMM,
+   default `202608`); LinkedIn retires versions after about a year, and a retired one fails with HTTP 426.
+4. Run `npm run db:migrate` (adds `005_social.sql`) and redeploy (`npm run deploy:api`; `neon deploy` also creates
+   the `publish-due` trigger from `neon.ts`).
+5. In the app: Publish > Publisher > **Connect LinkedIn** (owners/admins).
+
+How it works:
+
+- **Approval is enforced on the server**: only owners, admins and approvers can move a post into approved,
+  scheduled or published. Writers can still edit or reschedule a post that is already approved.
+- **Scheduler**: on Neon Functions the `publish-due` trigger in `neon.ts` calls `POST /api/internal/publish-due`
+  every minute (accepted only with Neon's trigger header). A long-running server (`npm run dev`, Docker, Cloud Run)
+  runs the same check in-process; `PUBLISH_SCHEDULER=off` turns that off. Any other cron can call the endpoint with
+  `Authorization: Bearer $CRON_SECRET`.
+- **Never twice**: each post claims a `social_posts` row (`UNIQUE (asset, network, account)`) before anything is
+  sent, so the scheduler, "Publish now" and retries cannot double-post. A failed post is retried only by hand
+  (Retry / Publish now). A post interrupted mid-send is marked failed after 10 minutes rather than re-sent; check
+  LinkedIn before retrying.
+- The caption is sent with LinkedIn's text escaping; hashtags become real hashtags; a generated image is attached
+  (GIFs are posted as text only). Limit 3,000 characters.
+- Success marks the asset published, writes the audit log and sends the `asset.published` webhook with the
+  LinkedIn URL.
+- **Tokens last 60 days** (LinkedIn gives self-serve apps no refresh token). The Publisher page shows days left;
+  reconnect before expiry. Disconnecting deletes the stored token; revoke the app in LinkedIn settings to remove
+  access fully.
+- Scheduled times are picked in the user's local time and stored in UTC.
+
 ## Team invitations (email)
 
 Owners and admins invite by email from the Team page (only the owner can invite admins). The link

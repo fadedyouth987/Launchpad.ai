@@ -74,7 +74,7 @@ export function useSocialScheduler(props: SocialSchedulerProps) {
     for (let i = firstDayIndex - 1; i >= 0; i--) {
       const prevDayNum = prevMonthTotalDays - i;
       const d = new Date(year, month - 1, prevDayNum);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = localDateKey(d);
       days.push({ date: d, dateStr, dayNum: prevDayNum, isCurrentMonth: false });
     }
 
@@ -89,7 +89,7 @@ export function useSocialScheduler(props: SocialSchedulerProps) {
     const remainingCells = (7 - (days.length % 7)) % 7;
     for (let day = 1; day <= remainingCells; day++) {
       const d = new Date(year, month + 1, day);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = localDateKey(d);
       days.push({ date: d, dateStr, dayNum: day, isCurrentMonth: false });
     }
 
@@ -115,7 +115,9 @@ export function useSocialScheduler(props: SocialSchedulerProps) {
     // Only posts with a real date are placed on the calendar (no invented dates).
     const when = asset.scheduledTime || asset.decidedAt;
     if (!when) return;
-    const dateKey = when.split('T')[0];
+    // Local calendar day (times are stored in UTC).
+    const t = new Date(when);
+    const dateKey = Number.isNaN(t.getTime()) ? when.split('T')[0] : localDateKey(t);
 
     if (!assetsByDate[dateKey]) {
       assetsByDate[dateKey] = [];
@@ -168,7 +170,8 @@ export function useSocialScheduler(props: SocialSchedulerProps) {
     const assetId = e.dataTransfer.getData('text/plain') || draggedAssetId;
 
     if (assetId) {
-      const newScheduledTime = `${targetDateStr}T09:00:00.000Z`;
+      // 09:00 in the user's own time zone (stored as UTC ISO).
+      const newScheduledTime = new Date(`${targetDateStr}T09:00:00`).toISOString();
       onUpdateAssetSchedule(assetId, newScheduledTime, 'scheduled');
       setDraggedAssetId(null);
 
@@ -177,16 +180,26 @@ export function useSocialScheduler(props: SocialSchedulerProps) {
     }
   };
 
-  // Trigger Auto-Dispatch Engine
-  // Marks every queued (scheduled/approved) post as published inside Launchpad. Social publishing is not
-  // connected, so nothing is sent to any network; the message says so.
+  // Publish every queued (scheduled/approved) post now. LinkedIn posts are really posted (when LinkedIn
+  // is connected); other platforms are marked published and handed off through webhooks.
   const handleTriggerAutoDispatch = () => {
     const dueAssets = workspaceAssets.filter((a) => a.status === 'scheduled' || a.status === 'approved');
+    if (!dueAssets.length) {
+      setDispatchNotification('No queued posts to publish.');
+      setTimeout(() => setDispatchNotification(null), 4000);
+      return;
+    }
+    const li = dueAssets.filter((a) => a.platform === 'linkedin').length;
+    if (
+      !window.confirm(
+        `Publish all ${dueAssets.length} queued post${dueAssets.length === 1 ? '' : 's'} now, ignoring their scheduled times?` +
+          (li ? `\n\n${li} LinkedIn post${li === 1 ? '' : 's'} will be posted to LinkedIn immediately.` : ''),
+      )
+    )
+      return;
     dueAssets.forEach((asset) => onPublishNow(asset.id));
     setDispatchNotification(
-      dueAssets.length > 0
-        ? `Marked ${dueAssets.length} queued post${dueAssets.length === 1 ? '' : 's'} as published in Launchpad. Nothing was posted to social networks (publishing is not connected).`
-        : 'No queued posts to mark as published.',
+      `Publishing ${dueAssets.length} queued post${dueAssets.length === 1 ? '' : 's'}${li ? ` (${li} to LinkedIn)` : ''}. Other networks are handed off via webhooks.`,
     );
     setTimeout(() => setDispatchNotification(null), 6000);
   };
@@ -208,7 +221,8 @@ export function useSocialScheduler(props: SocialSchedulerProps) {
 
   // Handle Save Scheduled Post in Modal
   const handleSaveModalPost = () => {
-    const fullISO = `${targetModalDateStr}T${modalTime}:00.000Z`;
+    // The time picked is local time; store it as UTC so it posts when the user expects.
+    const fullISO = new Date(`${targetModalDateStr}T${modalTime}:00`).toISOString();
 
     if (selectedExistingAssetId) {
       onUpdateAssetSchedule(selectedExistingAssetId, fullISO, 'scheduled');
