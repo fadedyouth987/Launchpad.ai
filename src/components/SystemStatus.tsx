@@ -67,9 +67,10 @@ function capabilities(h: Health | null): { area: string; state: State; detail: s
     },
     {
       area: 'Webhooks',
-      state: on('webhookDelivery') ? 'works' : 'missing',
-      detail:
-        'Signed (HMAC-SHA256) POSTs for approval and publishing events, with SSRF checks. Use them to hand posts to Zapier, Make or Buffer.',
+      state: on('webhookDelivery') ? 'works' : 'key',
+      detail: on('webhookDelivery')
+        ? 'Signed (HMAC-SHA256) POSTs for approval and publishing events, with SSRF checks. Use them to hand posts to Zapier, Make or Buffer.'
+        : 'Built, but sending is switched off on this server, so test sends are simulated and events are not delivered. Set WEBHOOK_DELIVERY_ENABLED=true (it is on by default on the deployed API).',
     },
     {
       area: 'Analytics',
