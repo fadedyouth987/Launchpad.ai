@@ -398,6 +398,20 @@ How it works:
   served through a signed link. Use a clear, front-facing photo with one face.
 - Files live in Postgres (`generated_media`, up to 50 MB each). For heavy video use, move them to object storage.
 
+## API keys (integrations)
+
+Owners/admins create workspace keys in Settings > API Keys (`lp_live_…`, shown once, SHA-256 hash stored, table
+`api_keys`, migration `007_api_keys.sql`). Usage for integrators is in [API.md](API.md); the OpenAPI description
+is `GET /api/v1/openapi.json`.
+
+- A key is a hidden member of its workspace (`workspace_members.user_id = 'apikey_<id>'`) with the role its
+  permissions give (read = viewer, write = creator, publish = approver), so membership, role, credit, approval and
+  per-caller rate-limit checks all apply unchanged. Key members are not listed on the Team page and do not use plan
+  seats. Revoking deletes the member row.
+- `requireAuth` accepts `Bearer lp_live_…` only for the endpoints in `KEY_ROUTES` (`server/apiKeys.ts`); anything
+  else (members, billing, webhooks, settings, GDPR, key management, creating workspaces) answers 403.
+- Audit entries show the actor as `API key "<name>"`. Keys can expire (30/90/365 days) and record when last used.
+
 ## Team invitations (email)
 
 Owners and admins invite by email from the Team page (only the owner can invite admins). The link

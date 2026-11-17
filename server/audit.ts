@@ -26,6 +26,12 @@ async function actorName(uid: string): Promise<string> {
   if (DEMO_MODE) return 'Demo user';
   const cached = nameCache.get(uid);
   if (cached) return cached;
+  if (uid.startsWith('apikey_')) {
+    const { keyMemberName } = await import('./apiKeys');
+    const n = (await keyMemberName(uid).catch(() => null)) ?? 'API key';
+    nameCache.set(uid, n);
+    return n;
+  }
   const p = (await userProfiles([uid])).get(uid);
   const name = p?.name || p?.email || uid;
   if (p) nameCache.set(uid, name);

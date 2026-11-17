@@ -42,7 +42,7 @@ export async function seatUsage(c: Queryable, workspaceId: string): Promise<Seat
   const { rows } = await c.query(
     `SELECT w.plan,
             s.plan AS sub_plan, s.status AS sub_status,
-            (SELECT count(*)::int FROM workspace_members m WHERE m.workspace_id = w.id) AS members,
+            (SELECT count(*)::int FROM workspace_members m WHERE m.workspace_id = w.id AND m.user_id NOT LIKE 'apikey\\_%') AS members,
             (SELECT count(*)::int FROM workspace_invites i
               WHERE i.workspace_id = w.id AND i.accepted_at IS NULL AND i.expires_at > now()) AS pending
        FROM workspaces w LEFT JOIN workspace_subscriptions s ON s.workspace_id = w.id

@@ -25,10 +25,12 @@ This repo is the source of truth for what is live. If you deploy from anywhere e
 4. **Member limits per plan** (3 / 10 / unlimited) on invitations, plus "Remove member" on the Team page. No
    migration. Existing workspaces never subscribed default to Starter: those already above 3 members keep them but
    cannot invite more until upgraded.
-5. Also new: only owners/admins/approvers can approve or schedule posts (enforced by the API).
+5. **API keys for integrations** (Settings > API Keys, read / write / publish). Migration `007_api_keys.sql`.
+   Integrator guide: `API.md`; OpenAPI at `/api/v1/openapi.json`.
+6. Also new: only owners/admins/approvers can approve or schedule posts (enforced by the API).
 
 To ship: `npm run db:migrate` on **both** Neon projects, then `npm run deploy:api` and `npm run deploy:web`.
-Details: `HOW_TO_RUN.md` → Payments, Social publishing, and AI voices and talking videos.
+Details: `HOW_TO_RUN.md` → Payments, Social publishing, AI voices and talking videos, API keys.
 
 Deploy commands: `npm run deploy:web` (Cloudflare), `npm run deploy:api` (Neon),
 `npm run db:migrate` (database). See `HOW_TO_RUN.md`.

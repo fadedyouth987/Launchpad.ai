@@ -116,7 +116,7 @@ async function membersFor(workspaceIds: string[]): Promise<Map<string, Workspace
   if (!workspaceIds.length) return byWs;
   const { rows } = await db().query(
     `SELECT workspace_id, user_id, role FROM workspace_members
-      WHERE workspace_id = ANY($1::text[]) ORDER BY added_at LIMIT 5000`,
+      WHERE workspace_id = ANY($1::text[]) AND user_id NOT LIKE 'apikey\\_%' ORDER BY added_at LIMIT 5000`,
     [workspaceIds],
   );
   const profiles = await userProfiles([...new Set(rows.map((r) => String(r.user_id)))]);

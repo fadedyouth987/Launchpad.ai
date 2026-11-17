@@ -21,6 +21,8 @@ export interface AuthContext {
   demo: boolean;
   email?: string;
   name?: string;
+  /** Set when the caller used a workspace API key instead of a signed-in session. */
+  apiKey?: { id: string; workspaceId: string; name: string; scopes: string[] };
 }
 
 declare global {
@@ -85,6 +87,29 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   }
 
   const header = req.get('authorization') || '';
+
+  // Workspace API key (integrations). Acts as a hidden member of its workspace; limited endpoints.
+  const keyMatch = /^Bearer\s+(lp_live_[A-Za-z0-9_-]{20,90})$/.exec(header);
+  if (keyMatch) {
+    try {
+      const { authenticateKey, keyMayCall, keyMemberId } = await import('./apiKeys');
+      const key = await authenticateKey(keyMatch[1]);
+      if (!key)
+        return res.status(401).json({ error: 'INVALID_API_KEY', message: 'API key is invalid, revoked or expired.' });
+      if (!keyMayCall(req)) {
+        return res.status(403).json({
+          error: 'API_KEY_NOT_ALLOWED',
+          message: 'API keys cannot call this endpoint. See the API docs for what keys can do.',
+        });
+      }
+      req.authContext = { uid: keyMemberId(key.id), demo: false, name: `API key "${key.name}"`, apiKey: key };
+      return next();
+    } catch (err) {
+      console.error('[auth] API key check failed:', (err as Error).message);
+      return res.status(503).json({ error: 'AUTH_UNAVAILABLE', message: 'Could not check the API key. Try again.' });
+    }
+  }
+
   const match = /^Bearer\s+([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/.exec(header);
   if (!match) {
     return res.status(401).json({ error: 'UNAUTHENTICATED', message: 'Sign in required.' });

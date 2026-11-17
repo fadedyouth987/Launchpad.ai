@@ -66,6 +66,12 @@ function capabilities(h: Health | null): { area: string; state: State; detail: s
         : 'Invite links are created and can be copied; emailing them needs RESEND_API_KEY and EMAIL_FROM.',
     },
     {
+      area: 'API keys (integrations)',
+      state: 'works',
+      detail:
+        'Workspace keys with read / write / publish permissions for Zapier, Make or scripts (Settings > API Keys). OpenAPI description at /api/v1/openapi.json.',
+    },
+    {
       area: 'Webhooks',
       state: on('webhookDelivery') ? 'works' : 'key',
       detail: on('webhookDelivery')

@@ -17,6 +17,7 @@ import { paymentRoutes } from './routes/payments';
 import { inviteRoutes } from './routes/invites';
 import { socialRoutes } from './routes/social';
 import { mediaRoutes } from './routes/media';
+import { apiKeyRoutes } from './routes/apiKeys';
 import { buildRateLimiters, setRateLimitStoreFactory, type RateLimitStoreFactory } from './rateLimit';
 
 export interface AppOptions {
@@ -85,6 +86,7 @@ export function createApp(options: AppOptions) {
   app.use('/api', paymentRoutes(options.paymentsFetch));
   app.use('/api', socialRoutes(options.socialFetch));
   app.use('/api', mediaRoutes(options.mediaFetch));
+  app.use('/api', apiKeyRoutes());
   app.use('/api', aiRoutes(resolver));
   app.use('/api', aiSettingsRoutes(resolver));
   app.use('/api', imageRoutes(resolver));

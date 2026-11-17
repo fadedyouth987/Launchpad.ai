@@ -8,6 +8,7 @@ import {
   CreditCard,
   Globe,
   Home,
+  KeyRound,
   MessageSquare,
   Palette,
   ShieldCheck,
@@ -32,7 +33,8 @@ export type TabId =
   | 'presence'
   | 'webhooks'
   | 'audit_inspector'
-  | 'ai_settings';
+  | 'ai_settings'
+  | 'api_keys';
 
 /** What a page needs from the backend; used to show a "not connected" notice instead of failing silently. */
 export type Requirement = 'ai' | 'payments' | 'channels';
@@ -205,6 +207,12 @@ export const NAV_SECTIONS: NavSection[] = [
         description:
           'Pick the AI provider and model (Claude, GPT, Gemini, Grok, Neon AI Gateway or your own endpoint) and see which ones are connected.',
         hint: 'Every provider is listed with the exact env var it needs. Owners and admins can pick one and save a workspace key.',
+      },
+      {
+        id: 'api_keys',
+        label: 'API Keys',
+        icon: KeyRound,
+        description: 'Keys that let other apps (Zapier, Make, scripts) work with this workspace.',
       },
       {
         id: 'webhooks',

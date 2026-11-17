@@ -73,6 +73,7 @@ const WebhooksSecurity = lazy(() =>
 );
 const SystemStatus = lazy(() => import('./components/SystemStatus').then((m) => ({ default: m.SystemStatus })));
 const AiSettings = lazy(() => import('./components/AiSettings').then((m) => ({ default: m.AiSettings })));
+const ApiKeys = lazy(() => import('./components/ApiKeys').then((m) => ({ default: m.ApiKeys })));
 const CampaignOperatingSystem = lazy(() =>
   import('./components/CampaignOperatingSystem').then((m) => ({ default: m.CampaignOperatingSystem })),
 );
@@ -929,6 +930,16 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
 
             {activeTab === 'audit_inspector' && <SystemStatus workspaceId={currentWorkspace.id} />}
             {activeTab === 'ai_settings' && <AiSettings workspaceId={currentWorkspace.id} />}
+            {activeTab === 'api_keys' && (
+              <ApiKeys
+                workspaceId={currentWorkspace.id}
+                signedIn={session.mode === 'account'}
+                canManage={
+                  session.mode === 'account' &&
+                  ['owner', 'admin'].includes(currentWorkspace.members.find((m) => m.id === session.uid)?.role ?? '')
+                }
+              />
+            )}
           </Suspense>
         </main>
 
