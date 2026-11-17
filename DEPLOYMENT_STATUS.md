@@ -7,11 +7,16 @@ This repo is the source of truth for what is live. If you deploy from anywhere e
 
 ## What is live
 
-| Piece | Where | Matches this repo? |
-|---|---|---|
-| Web app (static, React/Vite) | Cloudflare Worker **`launchpad-web`** (`wrangler.jsonc`), last deployed 15 Nov 2026 15:40 UTC | Yes |
-| API (Express) | Neon Function (`neon.ts`, `npm run deploy:api`) | Yes |
-| Database | Neon project **`launchpad-ai`** (`odd-surf-26973335`, ap-southeast-1), migrations `001`–`003` applied | Yes |
+| Piece                        | Where                                                                                                 | Matches this repo? |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------ |
+| Web app (static, React/Vite) | Cloudflare Worker **`launchpad-web`** (`wrangler.jsonc`), last deployed 15 Nov 2026 15:40 UTC         | Yes                |
+| API (Express)                | Neon Function (`neon.ts`, `npm run deploy:api`)                                                       | Yes                |
+| Database                     | Neon project **`launchpad-ai`** (`odd-surf-26973335`, ap-southeast-1), migrations `001`–`003` applied | Yes                |
+
+**Pending deploy (16–17 Nov):** monthly plan subscriptions (Stripe Billing) are in the code but not yet
+live. To ship: run migration `004_subscriptions.sql` on **both** Neon projects (`npm run db:migrate`), add the
+`customer.subscription.*` and `invoice.paid` events to the Stripe webhook, save the Stripe Customer portal
+once, then `npm run deploy:api` and `npm run deploy:web`. See `HOW_TO_RUN.md` → Payments.
 
 Deploy commands: `npm run deploy:web` (Cloudflare), `npm run deploy:api` (Neon),
 `npm run db:migrate` (database). See `HOW_TO_RUN.md`.

@@ -303,10 +303,12 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
     setCheckoutNotice(
       state === 'success'
         ? 'Payment received by Stripe. Credits are added as soon as Stripe confirms it (usually a few seconds).'
-        : 'Checkout cancelled. Nothing was charged.',
+        : state === 'subscribed'
+          ? 'Subscription started. Your plan and this month’s credits appear as soon as Stripe confirms the payment (usually a few seconds).'
+          : 'Checkout cancelled. Nothing was charged.',
     );
     window.history.replaceState(null, '', `${window.location.pathname}${window.location.hash}`);
-    if (state === 'success') {
+    if (state === 'success' || state === 'subscribed') {
       const timers = [2000, 6000, 15000].map((ms) => setTimeout(() => handleCreditsChanged(), ms));
       return () => timers.forEach(clearTimeout);
     }

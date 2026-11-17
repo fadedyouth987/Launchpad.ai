@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { creditPacks, verifyStripeEvent } from '../../server/payments';
+import { creditsForInvoice, plans } from '../../server/subscriptions';
 
 const SECRET = 'whsec_test_secret';
 const sign = (payload: string, t: number, secret = SECRET) =>
@@ -30,5 +31,45 @@ describe('credit packs', () => {
       { credits: 200, amount: 900 },
     ]);
     expect(creditPacks('junk').map((p) => p.credits)).toEqual([500, 1500, 5000]);
+  });
+});
+
+describe('plan subscriptions', () => {
+  it('parses PLAN_PRICES in plan order and falls back to defaults on junk', () => {
+    expect(plans('enterprise:100000:20000,starter:1000:50,bogus:1:1')).toEqual([
+      { id: 'starter', name: 'Starter', amount: 1000, credits: 50 },
+      { id: 'enterprise', name: 'Enterprise', amount: 100000, credits: 20000 },
+    ]);
+    expect(plans('junk').map((p) => [p.id, p.amount, p.credits])).toEqual([
+      ['starter', 9900, 1000],
+      ['professional', 29900, 3000],
+      ['enterprise', 89900, 10000],
+    ]);
+  });
+
+  const meta = { workspace_id: 'ws_1', plan: 'professional', upgrade_credits: '2000' };
+  const inv = (extra: Record<string, unknown>) => ({ id: 'in_1', currency: 'usd', amount_paid: 29900, ...extra });
+
+  it('first and renewal invoices add the plan credits (old and new Stripe invoice shapes)', () => {
+    const newShape = creditsForInvoice(
+      inv({ billing_reason: 'subscription_create', parent: { subscription_details: { metadata: meta } } }),
+    );
+    expect(newShape).toMatchObject({ workspaceId: 'ws_1', credits: 3000 });
+    const oldShape = creditsForInvoice(
+      inv({ billing_reason: 'subscription_cycle', subscription_details: { metadata: meta } }),
+    );
+    expect(oldShape.credits).toBe(3000);
+  });
+
+  it('a paid upgrade adds the difference; downgrades, other reasons, foreign invoices and wrong currency add nothing', () => {
+    const p = { parent: { subscription_details: { metadata: meta } } };
+    expect(creditsForInvoice(inv({ ...p, billing_reason: 'subscription_update' })).credits).toBe(2000);
+    expect(creditsForInvoice(inv({ ...p, billing_reason: 'subscription_update', amount_paid: 0 })).credits).toBe(0);
+    expect(creditsForInvoice(inv({ ...p, billing_reason: 'manual' })).credits).toBe(0);
+    expect(creditsForInvoice(inv({ ...p, billing_reason: 'subscription_cycle', currency: 'eur' })).credits).toBe(0);
+    expect(creditsForInvoice(inv({ billing_reason: 'subscription_cycle' })).reason).toBe('NO_LAUNCHPAD_METADATA');
+    // upgrade_credits can never exceed the plan's own monthly credits
+    const huge = { parent: { subscription_details: { metadata: { ...meta, upgrade_credits: '999999' } } } };
+    expect(creditsForInvoice(inv({ ...huge, billing_reason: 'subscription_update' })).credits).toBe(3000);
   });
 });

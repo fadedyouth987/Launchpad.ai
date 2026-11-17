@@ -264,7 +264,8 @@ is missing or malformed in API-only mode. Check `https://<service-url>/api/healt
   `UPDATE … SET credits_remaining = credits_remaining - n WHERE credits_remaining >= n`, so concurrent
   requests can never overspend; a refund is keyed to its reservation (`reservation_id UNIQUE`), so it can
   happen only once. The browser has no database access at all.
-- Plans (starter/professional/enterprise) are labels only: no monthly allocation or member limits are applied.
+- Plans (starter/professional/enterprise) are monthly Stripe subscriptions (see [Payments](#payments-stripe)): each
+  paid month adds the plan's credits (they carry over). Member limits are not enforced yet.
 - The same credit price applies whichever provider runs the call, and whether it uses the server key or a
   workspace key.
 - Top-ups use Stripe Checkout when configured (see [Payments](#payments-stripe)). Admins can also add credits with
@@ -299,13 +300,28 @@ Supported: Anthropic Claude, OpenAI, Google Gemini, xAI Grok, Neon AI Gateway an
 
 1. Set `STRIPE_SECRET_KEY` (https://dashboard.stripe.com/apikeys; `sk_test_...` while testing).
 2. In Stripe > Developers > Webhooks add the endpoint `<API URL>/api/billing/stripe/webhook` with events
-   `checkout.session.completed` and `checkout.session.async_payment_succeeded`; set its signing secret as
+   `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.created`,
+   `customer.subscription.updated`, `customer.subscription.deleted` and `invoice.paid`; set its signing secret as
    `STRIPE_WEBHOOK_SECRET`.
-3. Optional: `STRIPE_CURRENCY` (usd), `CREDIT_PACKS` (`credits:cents,...`, default `500:1900,1500:4900,5000:14900`),
-   `PUBLIC_APP_URL` (return URL; defaults to the first `ALLOWED_ORIGINS` entry).
+3. For plan subscriptions: in Stripe > Settings > Billing > Customer portal, click **Save** once (test and live
+   mode separately) so "Manage billing" can open the portal. Run `npm run db:migrate` (adds
+   `004_subscriptions.sql`).
+4. Optional: `STRIPE_CURRENCY` (usd), `CREDIT_PACKS` (`credits:cents,...`, default `500:1900,1500:4900,5000:14900`),
+   `PLAN_PRICES` (`plan:cents:monthlyCredits,...`, default
+   `starter:9900:1000,professional:29900:3000,enterprise:89900:10000`), `PUBLIC_APP_URL` (return URL; defaults to
+   the first `ALLOWED_ORIGINS` entry).
 
 Top up (owner/admin) opens Stripe Checkout; the signed webhook adds the credits once (idempotency key
 `stripe_<session id>`), after checking amount and currency against the pack. Test card: 4242 4242 4242 4242.
+
+**Plans.** Owners/admins pick a plan in Billing > Plans. With no active subscription that opens Stripe Checkout
+(subscription mode); with one, the plan is switched in place (`proration_behavior=always_invoice`). Prices live in
+`PLAN_PRICES`, not the Stripe dashboard: each plan is the Stripe Product `launchpad_plan_<plan>`, created on first
+use. Only the signed webhook changes anything: `customer.subscription.*` keeps `workspace_subscriptions` and
+`workspaces.plan` in sync (out-of-order events are ignored), and `invoice.paid` adds the plan's credits for the
+first and each renewal invoice, or the credit difference for a paid upgrade, once per invoice (idempotency key
+`stripe_<invoice id>`). Card changes, invoices and cancelling are in the Stripe billing portal ("Manage billing").
+Test locally with `stripe listen --forward-to localhost:3000/api/billing/stripe/webhook`.
 
 ## Team invitations (email)
 

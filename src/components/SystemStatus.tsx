@@ -84,9 +84,16 @@ function capabilities(h: Health | null): { area: string; state: State; detail: s
         'No social network accounts are connected; the scheduler and approvals emit webhooks for an external poster instead.',
     },
     {
-      area: 'Paid plans, voice and video avatars',
+      area: 'Paid plans',
+      state: on('payments') ? 'works' : 'key',
+      detail: on('payments')
+        ? 'Monthly Starter, Professional and Enterprise plans through Stripe Billing. Each paid month adds the plan’s credits; upgrades are prorated; card, invoices and cancelling are handled in the Stripe billing portal. Member limits are not enforced yet.'
+        : 'Monthly plans through Stripe Billing are built but need STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET.',
+    },
+    {
+      area: 'Voice and video avatars',
       state: 'missing',
-      detail: 'Plan subscriptions and voice/face rendering are not built. Influencer settings are stored only.',
+      detail: 'Voice and face rendering are not built. Influencer settings are stored only.',
     },
   ];
 }
