@@ -15,10 +15,12 @@ import {
   listAccounts,
   listPosts,
   makeState,
+  openPendingConnection,
   publishAsset,
   publishDue,
   readState,
   saveAccount,
+  sealPendingConnection,
   socialEnabled,
 } from '../social/service';
 
@@ -74,7 +76,9 @@ export function socialRoutes(fetchImpl?: typeof fetch) {
   );
 
   // LinkedIn redirects the browser here (no API token on this request: the encrypted state carries
-  // the workspace and member). Always ends with a redirect back to the web app.
+  // the workspace and member). Nothing is saved here: the browser is sent back to the web app with the
+  // sealed result, and the web app finishes the connection with its signed-in session (POST .../complete).
+  // Always ends with a redirect back to the web app.
   r.get('/social/linkedin/callback', async (req, res) => {
     const q = req.query as Record<string, string | undefined>;
     if (q.error) {
@@ -93,24 +97,17 @@ export function socialRoutes(fetchImpl?: typeof fetch) {
       await assertRole(uid, workspaceId, ['owner', 'admin']);
       const token = await exchangeCode(q.code, fetchImpl);
       const profile = await fetchProfile(token.accessToken, fetchImpl);
-      await saveAccount({
+      const pending = sealPendingConnection({
         workspaceId,
+        uid,
         provider: 'linkedin',
         externalId: profile.id,
         displayName: profile.name,
         avatarUrl: profile.picture,
         accessToken: token.accessToken,
         expiresInSec: token.expiresIn,
-        uid,
       });
-      await recordAudit({
-        workspaceId,
-        uid,
-        ip: req.ip,
-        action: 'social.account.connected',
-        details: `Connected LinkedIn as ${profile.name}.`,
-      });
-      res.redirect(302, back({ social: 'connected', provider: 'linkedin' }));
+      res.redirect(302, back({ social: 'pending', provider: 'linkedin', workspace: workspaceId, pending }));
     } catch (err) {
       const reason =
         err instanceof ApiError ? err.code : err instanceof LinkedInError ? `linkedin_${err.status}` : 'failed';
@@ -118,6 +115,49 @@ export function socialRoutes(fetchImpl?: typeof fetch) {
       res.redirect(302, back({ social: 'error', reason }));
     }
   });
+
+  // The web app finishes a LinkedIn connection: only the member who started it, still an owner/admin,
+  // can save it, and only into the workspace it was started for.
+  r.post(
+    '/workspaces/:workspaceId/social/linkedin/complete',
+    requireAuth,
+    dataWriteRateLimiter,
+    handle('social/linkedin/complete', async (req, res) => {
+      const ws = workspaceFromParam(req, res);
+      if (!ws) return;
+      if (req.authContext?.apiKey) throw new ApiError(403, 'API_KEY_NOT_ALLOWED', 'API keys cannot connect accounts.');
+      if (!socialEnabled('linkedin')) throw linkedinNotConfigured();
+      const sealed = typeof req.body?.pending === 'string' ? req.body.pending : '';
+      if (!sealed || sealed.length > 8192) throw new ApiError(400, 'INVALID_STATE', 'Missing connection request.');
+      const p = openPendingConnection(sealed);
+      if (p.workspaceId !== ws || p.uid !== req.authContext!.uid || p.provider !== 'linkedin') {
+        throw new ApiError(
+          403,
+          'NOT_YOUR_CONNECTION',
+          'This LinkedIn sign-in was started by someone else. Start the connection from your own account.',
+        );
+      }
+      await assertRole(p.uid, ws, ['owner', 'admin']);
+      await saveAccount({
+        workspaceId: ws,
+        provider: 'linkedin',
+        externalId: p.externalId,
+        displayName: p.displayName,
+        avatarUrl: p.avatarUrl,
+        accessToken: p.accessToken,
+        expiresInSec: p.expiresInSec,
+        uid: p.uid,
+      });
+      await recordAudit({
+        workspaceId: ws,
+        uid: p.uid,
+        ip: req.ip,
+        action: 'social.account.connected',
+        details: `Connected LinkedIn as ${p.displayName}.`,
+      });
+      res.json({ success: true, accounts: await listAccounts(ws) });
+    }),
+  );
 
   r.delete(
     '/workspaces/:workspaceId/social/accounts/:accountId',
@@ -166,15 +206,26 @@ export function socialRoutes(fetchImpl?: typeof fetch) {
       const out = await publishAsset(ws, assetId, req.authContext!.uid, { retry: true, fetchImpl });
       if (out.status === 'skipped') {
         const messages: Record<string, string> = {
+          PLATFORM_NOT_SUPPORTED: 'Direct posting is only available for LinkedIn posts.',
           LINKEDIN_NOT_CONFIGURED: 'LinkedIn is not set up on this server.',
           NO_ACCOUNT: 'Connect a LinkedIn account first (Publisher page).',
           NOT_APPROVED: 'Only approved or scheduled posts can be published.',
           ALREADY_PUBLISHED: 'This post is already on LinkedIn.',
           IN_PROGRESS: 'This post is being published right now.',
+          FAILED_NEEDS_RETRY: 'The last attempt failed. Use Retry to publish it again.',
         };
-        throw new ApiError(409, out.reason, messages[out.reason] ?? out.reason);
+        throw new ApiError(409, out.reason, messages[out.reason] ?? 'This post cannot be published right now.');
       }
-      res.status(out.status === 'published' ? 200 : 502).json({ success: out.status === 'published', ...out });
+      if (out.status === 'published') return res.json({ success: true, ...out });
+      // API error format: a code in `error`, LinkedIn's reason in `message`.
+      res.status(502).json({
+        success: false,
+        error: 'PUBLISH_FAILED',
+        message: out.error,
+        status: out.status,
+        reconnect: out.reconnect,
+        post: out.post,
+      });
     }),
   );
 

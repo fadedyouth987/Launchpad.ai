@@ -10,6 +10,7 @@ import { recordAudit } from '../audit';
 import { ApiError } from '../errors';
 import { createCheckoutSession, creditPacks, paymentCurrency, paymentsEnabled, verifyStripeEvent } from '../payments';
 import { assertMember } from '../workspaces';
+import { memberLimits } from '../memberLimits';
 import {
   PLAN_IDS,
   applySubscriptionEvent,
@@ -93,6 +94,7 @@ export function paymentRoutes(fetchImpl?: typeof fetch) {
       provider: 'stripe',
       currency: paymentCurrency(),
       plans: plans(),
+      memberLimits: memberLimits(),
     });
   });
 
@@ -189,8 +191,17 @@ export function paymentRoutes(fetchImpl?: typeof fetch) {
       event.type === 'customer.subscription.deleted'
     ) {
       try {
-        const out = await applySubscriptionEvent(event.data.object as unknown as StripeSubscription, created);
-        if ('workspaceId' in out) {
+        const sub = event.data.object as unknown as StripeSubscription;
+        const out = await applySubscriptionEvent(sub, created);
+        if ('duplicate' in out && out.duplicate && out.workspaceId) {
+          await recordAudit({
+            workspaceId: out.workspaceId,
+            uid: 'stripe',
+            action: 'billing.subscription.duplicate',
+            severity: 'critical',
+            details: `A second live Stripe subscription (${sub.id}) exists for this workspace and is being billed. Cancel it in Stripe (Billing portal or dashboard).`,
+          });
+        } else if ('status' in out) {
           await recordAudit({
             workspaceId: out.workspaceId,
             uid: 'stripe',

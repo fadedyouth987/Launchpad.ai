@@ -200,6 +200,7 @@ describe('Stripe plan subscriptions', () => {
     expect(call.body.get('items[0][price_data][unit_amount]')).toBe('29900');
     expect(call.body.get('proration_behavior')).toBe('always_invoice');
     expect(call.body.get('metadata[upgrade_credits]')).toBe('2000');
+    expect(call.body.get('metadata[upgrade_price_diff]')).toBe('20000');
 
     const t = Math.floor(Date.now() / 1000) + 10;
     await signed(
@@ -212,6 +213,46 @@ describe('Stripe plan subscriptions', () => {
     expect((await signed(invoice(`in_up_${t}`, 'subscription_update', meta, 20000))).body.duplicate).toBe(true);
     expect((await signed(invoice(`in_dn_${t}`, 'subscription_update', meta, 0))).body.credited).toBe(false);
     expect(await balanceOf(WS)).toBe(before + 2000);
+  });
+
+  it('a downgrade is not prorated (no refund for credits already granted)', async () => {
+    const r = await as(owner).post('/api/billing/subscribe').send({ workspaceId: WS, plan: 'starter' });
+    expect(r.body).toMatchObject({ changed: true, plan: 'starter' });
+    const call = stripeCalls.at(-1)!;
+    expect(call.body.get('proration_behavior')).toBe('none');
+    expect(call.body.get('metadata[upgrade_credits]')).toBe('0');
+  });
+
+  it('events from another subscription never overwrite the live one; same-second events keep the later state', async () => {
+    const t = Math.floor(Date.now() / 1000) + 15;
+    // A stray second subscription (e.g. a second checkout): reported, not applied, even when cancelled.
+    const stray = await signed(
+      subEvent('customer.subscription.created', t, {
+        id: 'sub_stray_1',
+        metadata: { workspace_id: WS, plan: 'enterprise' },
+      }),
+    );
+    expect(stray.body).toMatchObject({ ignored: 'OTHER_SUBSCRIPTION', duplicate: true });
+    const strayGone = await signed(
+      subEvent('customer.subscription.deleted', t + 1, {
+        id: 'sub_stray_1',
+        status: 'canceled',
+        metadata: { workspace_id: WS, plan: 'enterprise' },
+      }),
+    );
+    expect(strayGone.body.ignored).toBe('OTHER_SUBSCRIPTION');
+    expect(await subOf(owner)).toMatchObject({ plan: 'professional', status: 'active' });
+    const audit = await as(owner).get(`/api/workspaces/${WS}/audit-logs`);
+    expect(audit.body.entries.some((e: { action: string }) => e.action === 'billing.subscription.duplicate')).toBe(
+      true,
+    );
+    // Stripe event times are whole seconds: a creation-time 'incomplete' with the same time as a later
+    // 'active' update must not win, whichever arrives first.
+    const meta = { metadata: { workspace_id: WS, plan: 'professional' } };
+    await signed(subEvent('customer.subscription.updated', t + 2, { ...meta, status: 'active' }));
+    const tie = await signed(subEvent('customer.subscription.created', t + 2, { ...meta, status: 'incomplete' }));
+    expect(tie.body.ignored).toBe('STALE_EVENT');
+    expect((await subOf(owner)).status).toBe('active');
   });
 
   it('billing portal opens for owners; cancellation marks the subscription inactive', async () => {
@@ -228,6 +269,8 @@ describe('Stripe plan subscriptions', () => {
       }),
     );
     expect(await subOf(owner)).toMatchObject({ status: 'canceled', active: false });
+    // The stored plan follows: back to Starter, so the UI and the seat limits agree.
+    expect((await db().query('SELECT plan FROM workspaces WHERE id = $1', [WS])).rows[0].plan).toBe('starter');
     // With no active subscription, choosing a plan starts a new Checkout for the same Stripe customer.
     const again = await as(owner).post('/api/billing/subscribe').send({ workspaceId: WS, plan: 'enterprise' });
     expect(again.body.url).toBeTruthy();

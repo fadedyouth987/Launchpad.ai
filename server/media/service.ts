@@ -23,6 +23,11 @@ export const VOICE_COST = cost('AI_VOICE_COST_CREDITS', 5);
 /** Includes the speech it is made from. */
 export const VIDEO_COST = cost('AI_VIDEO_COST_CREDITS', 60);
 const VIDEO_TIMEOUT_MIN = 20;
+/** Cloned voices per workspace (AI_VOICE_CLONE_LIMIT, default 5). */
+export const MAX_CLONED_VOICES = cost('AI_VOICE_CLONE_LIMIT', 5);
+
+/** Errors thrown after credits were reserved and then refunded (so the message may say so). */
+export const refundedErrors = new WeakSet<object>();
 
 export const voiceEnabled = () => !DEMO_MODE && elevenLabsConfigured();
 export const videoEnabled = () => voiceEnabled() && didConfigured() && Boolean(signingSecret());
@@ -182,8 +187,13 @@ export async function workspaceVoices(workspaceId: string, fetchImpl?: Fetch) {
   const own = (await db().query('SELECT voice_id, name FROM workspace_voices WHERE workspace_id = $1', [workspaceId]))
     .rows as Array<{ voice_id: string; name: string }>;
   const ownIds = new Set(own.map((v) => v.voice_id));
+  // Which of the account's voices are some workspace's clone (only those ids, not the whole table).
   const allCloned = new Set(
-    (await db().query('SELECT voice_id FROM workspace_voices')).rows.map((r) => r.voice_id as string),
+    (
+      await db().query('SELECT voice_id FROM workspace_voices WHERE voice_id = ANY($1::text[])', [
+        voiceCache.voices.map((v) => v.id),
+      ])
+    ).rows.map((r) => r.voice_id as string),
   );
   const standard = voiceCache.voices.filter(
     (v) => !allCloned.has(v.id) && ['premade', 'professional', 'generated', 'famous'].includes(v.category),
@@ -207,13 +217,27 @@ export async function addClonedVoice(
   opts: { name: string; sample: Buffer; mimeType: string },
   fetchImpl?: Fetch,
 ) {
+  // All workspaces share the server's ElevenLabs account and its voice slots, so each gets a few.
+  const n = (await db().query('SELECT count(*)::int AS n FROM workspace_voices WHERE workspace_id = $1', [workspaceId]))
+    .rows[0].n;
+  if (n >= MAX_CLONED_VOICES) {
+    throw new ApiError(
+      409,
+      'VOICE_LIMIT',
+      `A workspace can have at most ${MAX_CLONED_VOICES} cloned voices. Delete one to add another.`,
+    );
+  }
   const voiceId = await cloneVoice({ ...opts, description: `Launchpad workspace ${workspaceId}` }, fetchImpl);
-  await db().query('INSERT INTO workspace_voices (workspace_id, voice_id, name, consent_by) VALUES ($1, $2, $3, $4)', [
-    workspaceId,
-    voiceId,
-    opts.name,
-    uid,
-  ]);
+  try {
+    await db().query(
+      'INSERT INTO workspace_voices (workspace_id, voice_id, name, consent_by) VALUES ($1, $2, $3, $4)',
+      [workspaceId, voiceId, opts.name, uid],
+    );
+  } catch (err) {
+    // Do not leave an orphan voice taking a slot in the ElevenLabs account.
+    await deleteVoice(voiceId, fetchImpl).catch(() => undefined);
+    throw err;
+  }
   voiceCache = null;
   return voiceId;
 }
@@ -253,6 +277,7 @@ async function withRefund<T>(
         details: `Refund of ${amount} credits failed for reservation ${reservationId}.`,
       });
     });
+    if (err && typeof err === 'object') refundedErrors.add(err);
     throw err;
   }
 }
@@ -424,23 +449,41 @@ export async function refreshVideo(workspaceId: string, id: string, fetchImpl?: 
       );
     } else if (status.state === 'failed') {
       await fail(`${status.error} Your credits were refunded.`);
-    } else if (Date.now() - new Date(row.created_at).getTime() > VIDEO_TIMEOUT_MIN * 60_000) {
-      await fail(`D-ID did not finish within ${VIDEO_TIMEOUT_MIN} minutes. Your credits were refunded.`);
     }
   } catch (err) {
-    // Network blips: leave it processing and try again next time (the timeout above still applies).
+    // Network blips: leave it processing and try again next time (the timeout below still applies).
     console.warn('[media] video status check failed', id, (err as Error).message);
+  }
+  // The timeout applies whatever happened above (D-ID unreachable, the job gone, a download that keeps
+  // failing): a video is never left processing, with its credits held, for longer than this. A no-op if
+  // the video was finished above.
+  if (Date.now() - new Date(row.created_at).getTime() > VIDEO_TIMEOUT_MIN * 60_000) {
+    await fail(`D-ID did not finish within ${VIDEO_TIMEOUT_MIN} minutes. Your credits were refunded.`);
   }
   return getMedia(workspaceId, id);
 }
 
-/** Background pass (minute scheduler): finishes videos nobody is watching. */
-export async function refreshProcessingVideos(fetchImpl?: Fetch) {
+/**
+ * Background pass (minute scheduler): finishes videos nobody is watching. Least recently checked first,
+ * so a slow job cannot hold the others back, and it stops starting checks once `budgetMs` has passed.
+ */
+export async function refreshProcessingVideos(fetchImpl?: Fetch, budgetMs = 25_000) {
   if (DEMO_MODE || !didConfigured()) return { checked: 0 };
+  const until = Date.now() + budgetMs;
   const { rows } = await db().query(
     `SELECT workspace_id, id FROM generated_media WHERE status = 'processing' AND kind = 'video'
-      ORDER BY created_at LIMIT 20`,
+      ORDER BY updated_at LIMIT 20`,
   );
-  for (const r of rows) await refreshVideo(r.workspace_id, r.id, fetchImpl);
-  return { checked: rows.length };
+  let checked = 0;
+  for (const r of rows) {
+    if (Date.now() > until) break;
+    // Mark it checked so the next pass starts with the others.
+    await db().query('UPDATE generated_media SET updated_at = now() WHERE id = $1 AND status = $2', [
+      r.id,
+      'processing',
+    ]);
+    await refreshVideo(r.workspace_id, r.id, fetchImpl);
+    checked++;
+  }
+  return { checked };
 }

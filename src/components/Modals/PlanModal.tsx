@@ -16,6 +16,8 @@ interface PlansResponse {
   enabled: boolean;
   currency: string;
   plans: { id: PlanId; name: string; amount: number; credits: number }[];
+  /** Seats per plan from the server's PLAN_MEMBER_LIMITS (null = unlimited). */
+  memberLimits?: Partial<Record<PlanId, number | null>>;
 }
 
 interface Subscription {
@@ -26,16 +28,15 @@ interface Subscription {
   cancelAtPeriodEnd: boolean;
 }
 
+// The member line comes first and is built from the server's limits (see seatsLine).
 const FEATURES: Record<PlanId, string[]> = {
-  starter: ['Up to 3 members', 'Standard AI generation', 'Approvals & scheduling'],
-  professional: [
-    'Up to 10 members',
-    'AI generation (Claude, GPT, Gemini, Grok)',
-    'Workflow approvals & locks',
-    'Signed outbound webhooks',
-  ],
-  enterprise: ['Unlimited members', 'Role-based access control', 'GDPR erasure workflow', 'Priority support'],
+  starter: ['Standard AI generation', 'Approvals & scheduling'],
+  professional: ['AI generation (Claude, GPT, Gemini, Grok)', 'Workflow approvals & locks', 'Signed outbound webhooks'],
+  enterprise: ['Role-based access control', 'GDPR erasure workflow', 'Priority support'],
 };
+
+const seatsLine = (limit: number | null | undefined) =>
+  limit === undefined ? null : limit === null ? 'Unlimited members' : `Up to ${limit} member${limit === 1 ? '' : 's'}`;
 
 const money = (amount: number, currency: string) =>
   new Intl.NumberFormat(undefined, {
@@ -158,9 +159,13 @@ export const PlanModal: React.FC<PlanModalProps> = ({ currentWorkspace, isOpen, 
         </div>
 
         <p className="text-xs text-slate-300 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 leading-relaxed">
-          {enabled
-            ? 'Billed monthly through Stripe. Each paid month adds the plan’s credits to this workspace (unused credits carry over). Upgrades are charged the prorated difference right away and add the extra credits; downgrades take effect immediately with a prorated credit on your next invoice. Members (including open invitations) are limited per plan; on a downgrade nobody is removed, but new invitations wait until the workspace is under the limit. Owners and admins can change the plan.'
-            : 'Payments are not connected on this server, so plans cannot be bought yet. The server admin must set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET.'}
+          {!data
+            ? error
+              ? 'Plans could not be loaded.'
+              : 'Loading plans…'
+            : enabled
+              ? 'Billed monthly through Stripe. Each paid month adds the plan’s credits to this workspace (unused credits carry over). Upgrades are charged the prorated difference right away and add the same share of the extra credits; downgrades take effect immediately and the lower price applies from the next renewal (the current month is not refunded). Members (including open invitations) are limited per plan; on a downgrade nobody is removed, but new invitations wait until the workspace is under the limit. Owners and admins can change the plan.'
+              : 'Payments are not connected on this server, so plans cannot be bought yet. The server admin must set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET.'}
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -203,7 +208,7 @@ export const PlanModal: React.FC<PlanModalProps> = ({ currentWorkspace, isOpen, 
                   </span>
 
                   <ul className="space-y-1.5 pt-2 text-2xs text-slate-300">
-                    {FEATURES[p.id].map((f) => (
+                    {[seatsLine(data?.memberLimits?.[p.id]), ...FEATURES[p.id]].filter(Boolean).map((f) => (
                       <li key={f} className="flex items-center space-x-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                         <span>{f}</span>

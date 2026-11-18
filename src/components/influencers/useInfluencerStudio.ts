@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { AIInfluencer, Platform, Workspace } from '../../types';
 import { newId } from '../../lib/ids';
 import {
@@ -64,9 +64,7 @@ export function useInfluencerStudio({
   );
 
   // Voice Profile Dedicated State
-  const [selectedVoiceModel, setSelectedVoiceModel] = useState('elevenlabs-rachel');
   const [voiceTone, setVoiceTone] = useState('Engaging, articulate, warm tech innovator');
-  const [pitch, setPitch] = useState<number>(1.0);
   const [speed, setSpeed] = useState<number>(1.0);
   const [accent, setAccent] = useState('US West Coast Tech Standard');
   const [samplePhrase, setSamplePhrase] = useState(
@@ -136,19 +134,16 @@ export function useInfluencerStudio({
   }, [loadVoices, loadVideos]);
 
   // Poll videos that are still rendering (D-ID usually takes under a minute).
-  const pollTimer = useRef<number | null>(null);
   useEffect(() => {
     const pending = videos.filter((v) => v.status === 'processing');
     if (!pending.length) return;
-    pollTimer.current = window.setTimeout(async () => {
+    const t = window.setTimeout(async () => {
       const updated = await Promise.all(pending.map((v) => fetchMediaItem(wsId, v.id)));
       setVideos((prev) =>
         prev.map((v) => updated.find((u): u is MediaItem => typeof u !== 'string' && u.id === v.id) ?? v),
       );
     }, 5000);
-    return () => {
-      if (pollTimer.current) window.clearTimeout(pollTimer.current);
-    };
+    return () => window.clearTimeout(t);
   }, [videos, wsId]);
 
   // Speaks the sample phrase with the selected ElevenLabs voice (charged), or with the browser's own
@@ -237,7 +232,7 @@ export function useInfluencerStudio({
       negativePrompt,
       voiceProfile: {
         tone: voiceTone,
-        pitch,
+        pitch: 1, // ElevenLabs voices have no pitch setting; kept for the stored profile format.
         speed,
         accent,
         samplePhrase,
@@ -301,12 +296,8 @@ export function useInfluencerStudio({
     setAppearancePrompt,
     negativePrompt,
     setNegativePrompt,
-    selectedVoiceModel,
-    setSelectedVoiceModel,
     voiceTone,
     setVoiceTone,
-    pitch,
-    setPitch,
     speed,
     setSpeed,
     accent,

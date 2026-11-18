@@ -4,6 +4,7 @@ import { db } from './db';
 import { assertMember, userProfiles } from './workspaces';
 import { initialAuditLogs } from '../src/data/initialData';
 import type { AuditLog } from '../src/types';
+import { isKeyMember } from './apiKeyMembers';
 
 /**
  * Audit log. Entries are written ONLY by the server (Postgres `audit_logs`, never exposed to the browser). Server-side actions record themselves; the browser can report UI events through
@@ -26,7 +27,7 @@ async function actorName(uid: string): Promise<string> {
   if (DEMO_MODE) return 'Demo user';
   const cached = nameCache.get(uid);
   if (cached) return cached;
-  if (uid.startsWith('apikey_')) {
+  if (isKeyMember(uid)) {
     const { keyMemberName } = await import('./apiKeys');
     const n = (await keyMemberName(uid).catch(() => null)) ?? 'API key';
     nameCache.set(uid, n);

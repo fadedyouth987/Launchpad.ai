@@ -95,14 +95,18 @@ export async function fetchCampaignAssets(workspaceId: string): Promise<Campaign
   return r.ok && Array.isArray(r.data.assets) ? r.data.assets : apiErrorMessage(r, 'Could not load campaign assets.');
 }
 
-/** Creates or updates one asset. Throws with a readable message on failure. */
-export async function saveCampaignAsset(workspaceId: string, asset: CampaignAsset): Promise<void> {
+/**
+ * Creates or updates one asset and returns the status it was saved with (the server sends a writer's
+ * content edit to an approved post back to 'pending_review'). Throws with a readable message on failure.
+ */
+export async function saveCampaignAsset(workspaceId: string, asset: CampaignAsset): Promise<CampaignAsset['status']> {
   const { userId: _u, createdAt: _c, ...fields } = asset as CampaignAsset & { userId?: string; createdAt?: string };
-  const r = await apiJson(`${base(workspaceId)}/campaign-assets/${encodeURIComponent(asset.id)}`, {
-    method: 'PUT',
-    json: { ...fields, workspaceId },
-  });
+  const r = await apiJson<{ status?: CampaignAsset['status'] }>(
+    `${base(workspaceId)}/campaign-assets/${encodeURIComponent(asset.id)}`,
+    { method: 'PUT', json: { ...fields, workspaceId } },
+  );
   if (!r.ok) throw new Error(apiErrorMessage(r, 'Could not save the campaign asset.'));
+  return r.data.status ?? asset.status;
 }
 
 export async function deleteCampaignAsset(workspaceId: string, assetId: string): Promise<void> {

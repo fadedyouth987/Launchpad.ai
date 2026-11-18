@@ -14,6 +14,7 @@ import { decryptSecret, encryptSecret, keyStorageEnabled } from '../llm/secrets'
 import { recordAudit } from '../audit';
 import { assetEventData, emitWorkspaceEvent } from '../webhookEvents';
 import { LinkedInError, linkedinConfigured, publishPost } from './linkedin';
+import { RELEASED_STATUSES } from '../campaignAssets';
 import type { CampaignAsset, Platform } from '../../src/types';
 
 export type SocialProvider = 'linkedin';
@@ -52,6 +53,39 @@ export function readState(state: string, provider: SocialProvider): { workspaceI
     if (err instanceof ApiError) throw err;
     throw new ApiError(400, 'INVALID_STATE', 'Invalid or tampered connection request.');
   }
+}
+
+/**
+ * The result of a finished LinkedIn sign-in, sealed for the browser that comes back from LinkedIn.
+ * The callback does not save the account: the web app hands this back with its signed-in session and
+ * it is saved only if that session is the member who started the connection. So a connect link sent to
+ * someone else cannot put their LinkedIn account into the sender's workspace.
+ */
+export interface PendingConnection {
+  workspaceId: string;
+  uid: string;
+  provider: SocialProvider;
+  externalId: string;
+  displayName: string;
+  avatarUrl: string;
+  accessToken: string;
+  expiresInSec: number;
+}
+
+export function sealPendingConnection(p: PendingConnection): string {
+  const payload = JSON.stringify({ ...p, e: Date.now() + STATE_TTL_MS });
+  return Buffer.from(encryptSecret(payload, 'oauth-pending')).toString('base64url');
+}
+
+export function openPendingConnection(sealed: string): PendingConnection {
+  let p: PendingConnection & { e: number };
+  try {
+    p = JSON.parse(decryptSecret(Buffer.from(sealed, 'base64url').toString('utf8'), 'oauth-pending'));
+  } catch {
+    throw new ApiError(400, 'INVALID_STATE', 'Invalid or tampered connection request.');
+  }
+  if (!(p.e > Date.now())) throw new ApiError(400, 'STATE_EXPIRED', 'The connection link expired. Try again.');
+  return p;
 }
 
 // ---------------------------------------------------------------- Accounts
@@ -231,10 +265,9 @@ export async function publishAsset(
   if (!assetRow) throw new ApiError(404, 'NOT_FOUND', 'Asset not found.');
   const asset = { ...(assetRow.data as CampaignAsset), id: assetId, workspaceId };
   const provider = DIRECT_PLATFORMS[asset.platform];
-  if (!provider) return { status: 'skipped', reason: `Direct posting to ${asset.platform} is not available.` };
+  if (!provider) return { status: 'skipped', reason: 'PLATFORM_NOT_SUPPORTED' };
   // Only cleared posts go out ("published" is allowed so a failed post can be retried).
-  if (!['approved', 'scheduled', 'published'].includes(asset.status))
-    return { status: 'skipped', reason: 'NOT_APPROVED' };
+  if (!RELEASED_STATUSES.includes(asset.status)) return { status: 'skipped', reason: 'NOT_APPROVED' };
   if (!socialEnabled(provider)) return { status: 'skipped', reason: 'LINKEDIN_NOT_CONFIGURED' };
   const account = await accountWithToken(workspaceId, provider);
   if (!account) return { status: 'skipped', reason: 'NO_ACCOUNT' };
@@ -247,6 +280,14 @@ export async function publishAsset(
         WHERE asset_id = $1 AND provider = $2 AND status = 'publishing' AND updated_at < now() - ${STUCK_AFTER}`,
       [assetId, provider],
     );
+    // Already out (or going out) on this network through a previously connected account: reconnecting a
+    // different LinkedIn account must not post it a second time.
+    const elsewhere = await c.query(
+      `SELECT 1 FROM social_posts WHERE asset_id = $1 AND provider = $2 AND account_external_id <> $3
+          AND status IN ('published', 'publishing') LIMIT 1`,
+      [assetId, provider, account.externalId],
+    );
+    if (elsewhere.rows.length) return null;
     const ins = await c.query(
       `INSERT INTO social_posts (id, workspace_id, asset_id, provider, account_external_id, status, requested_by)
        VALUES ($1, $2, $3, $4, $5, 'publishing', $6)
@@ -355,8 +396,12 @@ export async function publishAsset(
 /**
  * Publishes every scheduled asset whose time has come, on networks the workspace has connected.
  * Safe to run concurrently or repeatedly: each asset is claimed once. Returns a summary.
+ *
+ * It stops starting new posts once `budgetMs` has passed, so a run finishes well inside the function
+ * timeout: a run killed mid-post would leave that post marked failed ("stopped mid-publish") without
+ * knowing whether LinkedIn has it. Whatever is left goes out on the next minute's run.
  */
-export async function publishDue(opts: { fetchImpl?: typeof fetch; limit?: number } = {}) {
+export async function publishDue(opts: { fetchImpl?: typeof fetch; limit?: number; budgetMs?: number } = {}) {
   if (DEMO_MODE) return { checked: 0, published: 0, failed: 0 };
   const platforms = Object.keys(DIRECT_PLATFORMS);
   const now = Date.now();
@@ -381,9 +426,13 @@ export async function publishDue(opts: { fetchImpl?: typeof fetch; limit?: numbe
     .filter((r) => Number.isFinite(r.t) && r.t <= now)
     .sort((a, b) => a.t - b.t)
     .slice(0, opts.limit ?? 25);
+  const until = now + (opts.budgetMs ?? 25_000);
   let published = 0;
   let failed = 0;
+  let checked = 0;
   for (const r of rows) {
+    if (Date.now() > until) break;
+    checked++;
     try {
       const out = await publishAsset(r.workspace_id, r.id, 'scheduler', { fetchImpl: opts.fetchImpl });
       if (out.status === 'published') published++;
@@ -393,5 +442,5 @@ export async function publishDue(opts: { fetchImpl?: typeof fetch; limit?: numbe
       console.error('[social] scheduled publish crashed', r.id, (err as Error).message);
     }
   }
-  return { checked: rows.length, published, failed };
+  return { checked, published, failed };
 }

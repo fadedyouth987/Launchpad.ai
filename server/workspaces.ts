@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { DEMO_MODE } from './auth';
-import { db, withTx } from './db';
+import { db, withTx, type DbClient } from './db';
+import { isKeyMember, keyMemberId, KEY_MEMBER_LIKE } from './apiKeyMembers';
 import { demoWorkspaces } from './demoStore';
 import { ApiError, forbidden } from './errors';
 import type { Workspace, WorkspaceMember } from '../src/types';
@@ -116,8 +117,8 @@ async function membersFor(workspaceIds: string[]): Promise<Map<string, Workspace
   if (!workspaceIds.length) return byWs;
   const { rows } = await db().query(
     `SELECT workspace_id, user_id, role FROM workspace_members
-      WHERE workspace_id = ANY($1::text[]) AND user_id NOT LIKE 'apikey\\_%' ORDER BY added_at LIMIT 5000`,
-    [workspaceIds],
+      WHERE workspace_id = ANY($1::text[]) AND user_id NOT LIKE $2 ORDER BY added_at LIMIT 5000`,
+    [workspaceIds, KEY_MEMBER_LIKE],
   );
   const profiles = await userProfiles([...new Set(rows.map((r) => String(r.user_id)))]);
   for (const r of rows) {
@@ -213,11 +214,38 @@ export async function setMemberRole(uid: string, workspaceId: string, memberId: 
   }
   const ws = await assertRole(uid, workspaceId, ['owner', 'admin']);
   if (memberId === ws.ownerId) throw new ApiError(400, 'OWNER_ROLE_FIXED', "The owner's role cannot be changed.");
-  const r = await db().query(
-    `UPDATE workspace_members SET role = $3 WHERE workspace_id = $1 AND user_id = $2 AND role <> 'owner'`,
-    [workspaceId, memberId, role],
+  if (isKeyMember(memberId)) throw keyMemberFixed();
+  await withTx(async (c) => {
+    const r = await c.query(
+      `UPDATE workspace_members SET role = $3 WHERE workspace_id = $1 AND user_id = $2 AND role <> 'owner'`,
+      [workspaceId, memberId, role],
+    );
+    if (!r.rowCount) throw new ApiError(404, 'NOT_FOUND', 'Member not found.');
+    // Only owners/admins manage keys: someone who is no longer one loses the keys they created.
+    if (role !== 'admin') await revokeKeysCreatedBy(c, workspaceId, memberId);
+  });
+}
+
+const keyMemberFixed = () =>
+  new ApiError(400, 'API_KEY_MEMBER', 'API keys are managed on the API Keys page, not as members.');
+
+/**
+ * Revokes the API keys a member created (when they are removed, or stop being an owner/admin), so an
+ * offboarded admin's integration keys stop working. Returns how many were revoked.
+ */
+async function revokeKeysCreatedBy(c: DbClient, workspaceId: string, memberId: string): Promise<number> {
+  const { rows } = await c.query(
+    `UPDATE api_keys SET revoked_at = now() WHERE workspace_id = $1 AND created_by = $2 AND revoked_at IS NULL
+     RETURNING id`,
+    [workspaceId, memberId],
   );
-  if (!r.rowCount) throw new ApiError(404, 'NOT_FOUND', 'Member not found.');
+  if (rows.length) {
+    await c.query('DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = ANY($2::text[])', [
+      workspaceId,
+      rows.map((r) => keyMemberId(String(r.id))),
+    ]);
+  }
+  return rows.length;
 }
 
 /**
@@ -228,6 +256,7 @@ export async function removeMember(uid: string, workspaceId: string, memberId: s
   if (DEMO_MODE) throw new ApiError(400, 'NOT_AVAILABLE_IN_DEMO', 'Removing members is not available in demo mode.');
   const ws = await assertRole(uid, workspaceId, ['owner', 'admin']);
   if (memberId === ws.ownerId) throw new ApiError(400, 'OWNER_FIXED', 'The owner cannot be removed.');
+  if (isKeyMember(memberId)) throw keyMemberFixed();
   const target = (
     await db().query('SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2', [
       workspaceId,
@@ -237,11 +266,14 @@ export async function removeMember(uid: string, workspaceId: string, memberId: s
   if (!target) throw new ApiError(404, 'NOT_FOUND', 'Member not found.');
   if (target.role === 'admin' && ws.role !== 'owner')
     throw new ApiError(403, 'ROLE_REQUIRED', 'Only the owner can remove an admin.');
-  await db().query(`DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 AND role <> 'owner'`, [
-    workspaceId,
-    memberId,
-  ]);
-  return { role: target.role as Role };
+  const keysRevoked = await withTx(async (c) => {
+    await c.query(`DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 AND role <> 'owner'`, [
+      workspaceId,
+      memberId,
+    ]);
+    return revokeKeysCreatedBy(c, workspaceId, memberId);
+  });
+  return { role: target.role as Role, keysRevoked };
 }
 
 /** Turns legal hold on/off (owner/admin only). While on, erasure is refused. */

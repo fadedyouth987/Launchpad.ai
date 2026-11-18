@@ -186,12 +186,14 @@ export function checkConfig(env: NodeJS.ProcessEnv = process.env): ConfigReport 
   if (realValue(env.DID_API_KEY) && !realValue(env.ELEVENLABS_API_KEY)) {
     warnings.push('Talking videos are off: DID_API_KEY is set but ELEVENLABS_API_KEY (the voice) is not.');
   }
-  if (realValue(env.DID_API_KEY) && !env.PUBLIC_API_URL && !onNeonFunctionsEarly(env)) {
-    warnings.push("Set PUBLIC_API_URL (this API's public https origin) so D-ID can download avatar photos and audio.");
+  const onNeonFunctions = env.LAUNCHPAD_RUNTIME === 'neon-functions';
+  if (realValue(env.DID_API_KEY) && !env.PUBLIC_API_URL && !onNeonFunctions) {
+    warnings.push(
+      "Talking videos are off until PUBLIC_API_URL is set (this API's public https origin, from which D-ID downloads avatar photos and audio).",
+    );
   }
   // Neon Functions: no trustworthy client IP (X-Forwarded-For is client-controlled), so TRUST_PROXY
   // must stay off there; per-user limits use the verified JWT subject.
-  const onNeonFunctions = env.LAUNCHPAD_RUNTIME === 'neon-functions';
   if (onNeonFunctions && env.TRUST_PROXY) {
     errors.push(
       'TRUST_PROXY must not be set on Neon Functions (X-Forwarded-For is not a trustworthy client IP there).',
@@ -207,5 +209,3 @@ export function checkConfig(env: NodeJS.ProcessEnv = process.env): ConfigReport 
   }
   return { errors, warnings };
 }
-
-const onNeonFunctionsEarly = (env: NodeJS.ProcessEnv) => env.LAUNCHPAD_RUNTIME === 'neon-functions';

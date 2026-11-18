@@ -89,4 +89,50 @@ describe('API keys', () => {
     expect((await withKey(key).get('/api/v1/key')).body.error).toBe('INVALID_API_KEY');
     expect((await withKey('lp_live_' + 'x'.repeat(43)).get('/api/v1/key')).status).toBe(401);
   });
+
+  it('an expired key is refused', async () => {
+    const { key, apiKey } = await makeKey(['read'], 'old');
+    await db().query("UPDATE api_keys SET expires_at = now() - interval '1 minute' WHERE id = $1", [apiKey.id]);
+    expect((await withKey(key).get('/api/v1/key')).body.error).toBe('INVALID_API_KEY');
+  });
+
+  it('key members cannot be promoted or removed through the member endpoints', async () => {
+    const { apiKey } = await makeKey(['read'], 'guarded');
+    const member = `apikey_${apiKey.id}`;
+    const promote = await as(owner).put(`/api/workspaces/${WS}/members/${member}/role`).send({ role: 'admin' });
+    expect(promote.body.error).toBe('API_KEY_MEMBER');
+    expect((await as(owner).delete(`/api/workspaces/${WS}/members/${member}`)).body.error).toBe('API_KEY_MEMBER');
+    const role = (
+      await db().query('SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2', [WS, member])
+    ).rows[0].role;
+    expect(role).toBe('viewer');
+  });
+
+  it("an admin's keys stop working when they are removed or stop being an admin", async () => {
+    const [admin, admin2] = await Promise.all([createUser('key-admin'), createUser('key-admin2')]);
+    await addMember(WS, admin.uid, 'admin');
+    await addMember(WS, admin2.uid, 'admin');
+    const k1 = (
+      await as(admin)
+        .post(`/api/workspaces/${WS}/api-keys`)
+        .send({ name: 'a1', scopes: ['write'] })
+    ).body;
+    const k2 = (
+      await as(admin2)
+        .post(`/api/workspaces/${WS}/api-keys`)
+        .send({ name: 'a2', scopes: ['write'] })
+    ).body;
+    expect((await withKey(k1.key).get('/api/v1/key')).status).toBe(200);
+    // Removed: the admin's key is revoked with them.
+    expect((await as(owner).delete(`/api/workspaces/${WS}/members/${admin.uid}`)).status).toBe(200);
+    expect((await withKey(k1.key).get('/api/v1/key')).body.error).toBe('INVALID_API_KEY');
+    // Demoted below admin: same.
+    expect(
+      (await as(owner).put(`/api/workspaces/${WS}/members/${admin2.uid}/role`).send({ role: 'creator' })).status,
+    ).toBe(200);
+    expect((await withKey(k2.key).get('/api/v1/key')).body.error).toBe('INVALID_API_KEY');
+    expect(
+      (await db().query('SELECT 1 FROM workspace_members WHERE user_id = $1', [`apikey_${k2.apiKey.id}`])).rowCount,
+    ).toBe(0);
+  });
 });

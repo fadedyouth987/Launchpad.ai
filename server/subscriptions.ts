@@ -27,7 +27,12 @@ export interface Plan {
   credits: number;
 }
 
-const NAMES: Record<PlanId, string> = { starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' };
+export const PLAN_NAMES: Record<PlanId, string> = {
+  starter: 'Starter',
+  professional: 'Professional',
+  enterprise: 'Enterprise',
+};
+const NAMES = PLAN_NAMES;
 const DEFAULT_PLANS = 'starter:9900:1000,professional:29900:3000,enterprise:89900:10000';
 
 /** PLAN_PRICES="plan:priceInCents:monthlyCredits,..." (default starter 99/1000, professional 299/3000, enterprise 899/10000). */
@@ -58,6 +63,8 @@ export interface Subscription {
 
 /** Statuses where the customer still has the plan (past_due = Stripe is retrying the card). */
 export const ACTIVE_STATUSES = ['active', 'trialing', 'past_due'];
+/** Statuses where the subscription is over for good. */
+export const TERMINAL_STATUSES = ['canceled', 'incomplete_expired'];
 
 // ---------------------------------------------------------------- Stripe API
 
@@ -138,8 +145,18 @@ export async function createSubscriptionCheckout(
     'checkout/sessions',
     form,
     fetchImpl,
-    `sub-checkout-${opts.workspaceId}-${opts.plan.id}-${Math.floor(Date.now() / 10_000)}`,
+    // Same workspace + plan within 10 minutes gets the same Checkout session back (a double click, a
+    // second admin or a retry), not a second subscription. A duplicate that still gets through is
+    // reported by the webhook (billing.subscription.duplicate).
+    `sub-checkout-${opts.workspaceId}-${opts.plan.id}-${Math.floor(Date.now() / 600_000)}`,
   );
+  if ((r.body.error as { type?: string } | undefined)?.type === 'idempotency_error') {
+    throw new ApiError(
+      409,
+      'CHECKOUT_IN_PROGRESS',
+      'Someone else started a checkout for this plan a few minutes ago. Wait for it to finish, then reload.',
+    );
+  }
   if (!r.ok || typeof r.body.url !== 'string' || typeof r.body.id !== 'string') throw stripeFailed('checkout', r);
   return { id: r.body.id, url: r.body.url };
 }
@@ -156,19 +173,26 @@ export async function changeSubscriptionPlan(
   const itemId = (cur.body.items as { data?: Array<{ id?: string }> } | undefined)?.data?.[0]?.id;
   if (!cur.ok || !itemId) throw stripeFailed('read subscription', cur);
   await ensureProduct(opts.to, fetchImpl);
-  const upgradeCredits = Math.max(0, opts.to.credits - opts.from.credits);
+  const upgrade = opts.to.amount > opts.from.amount;
+  const upgradeCredits = upgrade ? Math.max(0, opts.to.credits - opts.from.credits) : 0;
   const r = await stripe(
     'POST',
     `subscriptions/${encodeURIComponent(opts.subscriptionId)}`,
     {
       'items[0][id]': itemId,
       ...priceData('items[0][price_data]', opts.to),
-      proration_behavior: 'always_invoice',
+      // Upgrade: charge the prorated difference now (credits follow, in proportion, once it is paid).
+      // Downgrade: no proration, so no refund to the customer balance for credits already granted; the
+      // lower price applies from the next renewal.
+      proration_behavior: upgrade ? 'always_invoice' : 'none',
       cancel_at_period_end: 'false',
       'metadata[workspace_id]': opts.workspaceId,
       'metadata[plan]': opts.to.id,
       'metadata[uid]': opts.uid,
       'metadata[upgrade_credits]': String(upgradeCredits),
+      // Full monthly price difference; an upgrade invoice's amount over this is the share of the
+      // month being paid for, and the extra credits are scaled by it.
+      'metadata[upgrade_price_diff]': String(upgrade ? opts.to.amount - opts.from.amount : 0),
     },
     fetchImpl,
     `sub-change-${opts.subscriptionId}-${opts.to.id}-${Math.floor(Date.now() / 10_000)}`,
@@ -265,8 +289,15 @@ export async function applySubscriptionEvent(sub: StripeSubscription, eventCreat
          plan = EXCLUDED.plan, status = EXCLUDED.status, current_period_end = EXCLUDED.current_period_end,
          cancel_at_period_end = EXCLUDED.cancel_at_period_end, last_event_at = EXCLUDED.last_event_at,
          updated_at = now()
-       WHERE s.last_event_at <= EXCLUDED.last_event_at
-          -- A different (newer) subscription replaces a finished one.
+       WHERE (
+           -- The tracked subscription: newer events win. Stripe event times are whole seconds, so on a
+           -- tie the creation-time 'incomplete' never overwrites what came after it.
+           s.stripe_subscription_id = EXCLUDED.stripe_subscription_id
+           AND (s.last_event_at < EXCLUDED.last_event_at
+                OR (s.last_event_at = EXCLUDED.last_event_at AND (EXCLUDED.status <> 'incomplete' OR s.status = 'incomplete')))
+         )
+          -- A different subscription replaces one that is no longer live, never a live one (so events
+          -- from a stray duplicate, e.g. its cancellation, cannot overwrite the workspace's real one).
           OR (s.stripe_subscription_id <> EXCLUDED.stripe_subscription_id AND s.status NOT IN ('active', 'trialing', 'past_due'))
        RETURNING status`,
       [
@@ -280,9 +311,25 @@ export async function applySubscriptionEvent(sub: StripeSubscription, eventCreat
         eventAt,
       ],
     );
-    if (!up.rows.length) return { ignored: 'STALE_EVENT' };
+    if (!up.rows.length) {
+      const tracked = (
+        await c.query('SELECT stripe_subscription_id FROM workspace_subscriptions WHERE workspace_id = $1', [
+          workspaceId,
+        ])
+      ).rows[0]?.stripe_subscription_id;
+      // A second live subscription for the same workspace (e.g. two checkouts): the customer is being
+      // billed twice. Report it so the caller can record it for an admin to cancel in Stripe.
+      if (tracked && tracked !== sub.id) {
+        return { ignored: 'OTHER_SUBSCRIPTION', workspaceId, duplicate: ACTIVE_STATUSES.includes(sub.status) };
+      }
+      return { ignored: 'STALE_EVENT' };
+    }
+    // workspaces.plan follows the subscription: its plan while it is live, Starter once it has ended
+    // (the same rule the member limits use).
     if (ACTIVE_STATUSES.includes(sub.status)) {
       await c.query('UPDATE workspaces SET plan = $2 WHERE id = $1', [workspaceId, plan.id]);
+    } else if (TERMINAL_STATUSES.includes(sub.status)) {
+      await c.query(`UPDATE workspaces SET plan = 'starter' WHERE id = $1`, [workspaceId]);
     }
     return { workspaceId, plan: plan.id, status: sub.status };
   });
@@ -316,11 +363,16 @@ export function creditsForInvoice(inv: StripeInvoice): {
   }
   // Only a charged plan change (an upgrade) adds credits; downgrades and $0 updates do not.
   if (inv.billing_reason === 'subscription_update' && (inv.amount_paid ?? 0) > 0) {
-    const extra = Math.min(Number(meta.upgrade_credits) || 0, plan.credits);
+    const full = Math.min(Number(meta.upgrade_credits) || 0, plan.credits);
+    // Prorated: upgrading near the end of the month pays a small part of the difference, and gets the
+    // same part of the extra credits (not all of them).
+    // (A change made before upgrade_price_diff existed has no such field: those keep the full amount.)
+    const diff = Number(meta.upgrade_price_diff) || 0;
+    const share = meta.upgrade_price_diff === undefined ? 1 : diff > 0 ? Math.min(1, (inv.amount_paid ?? 0) / diff) : 0;
     return {
       workspaceId,
       plan,
-      credits: Math.max(0, Math.floor(extra)),
+      credits: Math.max(0, Math.floor(full * share)),
       reason: `Upgrade to ${plan.name}: extra credits`,
     };
   }

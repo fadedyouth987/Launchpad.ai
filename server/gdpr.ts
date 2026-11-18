@@ -10,6 +10,7 @@ import { getCampaignOs, listInfluencers, demoEraseWorkspaceData } from './worksp
 import { getAiSettings, listWorkspaceKeys } from './llm/settings';
 import { listImages } from './images';
 import { deleteVoice, elevenLabsConfigured } from './media/elevenlabs';
+import { KEY_MEMBER_LIKE } from './apiKeyMembers';
 
 /**
  * GDPR data export and erasure for one workspace.
@@ -141,7 +142,10 @@ export async function eraseWorkspace(uid: string, workspaceId: string, confirmSl
           workspaceId,
         ])
       ).rowCount ?? 0;
-    await c.query(`DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id LIKE 'apikey\\_%'`, [workspaceId]);
+    await c.query('DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id LIKE $2', [
+      workspaceId,
+      KEY_MEMBER_LIKE,
+    ]);
     return {
       result: {
         campaignAssets,

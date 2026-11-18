@@ -88,8 +88,3 @@ export async function fetchMediaList(workspaceId: string): Promise<MediaItem[] |
   const r = await apiJson<{ media: MediaItem[] }>(base(workspaceId));
   return r.ok ? r.data.media : apiErrorMessage(r, 'Could not load media.');
 }
-
-export async function deleteMediaItem(workspaceId: string, id: string): Promise<string | null> {
-  const r = await apiJson(`${base(workspaceId)}/${encodeURIComponent(id)}`, { method: 'DELETE' });
-  return r.ok ? null : apiErrorMessage(r, 'Could not delete.');
-}

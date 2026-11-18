@@ -71,20 +71,25 @@ export function VoicePanel({ s }: { s: InfluencerStudioState }) {
               {[...(voices?.cloned ?? []), ...(voices?.standard ?? [])].map((v) => {
                 const isSelected = selectedVoiceId === v.id;
                 return (
+                  // A native radio (one tab stop, arrow keys between voices) with its label; the sample and
+                  // delete buttons sit beside it, not inside it.
                   <div
                     key={v.id}
-                    role="radio"
-                    aria-checked={isSelected}
-                    tabIndex={0}
-                    onClick={() => setSelectedVoiceId(v.id)}
-                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedVoiceId(v.id)}
-                    className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                    className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 focus-within:ring-2 focus-within:ring-indigo-400 ${
                       isSelected
                         ? 'bg-indigo-950/50 border-indigo-500/80 ring-1 ring-indigo-500/50'
                         : 'bg-slate-950 border-slate-800/80 hover:border-slate-700'
                     }`}
                   >
-                    <div className="flex items-center space-x-3 min-w-0">
+                    <label className="flex items-center space-x-3 min-w-0 flex-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="influencer-voice"
+                        value={v.id}
+                        checked={isSelected}
+                        onChange={() => setSelectedVoiceId(v.id)}
+                        className="sr-only"
+                      />
                       <Mic className={`w-4 h-4 shrink-0 ${isSelected ? 'text-indigo-300' : 'text-slate-400'}`} />
                       <div className="min-w-0">
                         <div className="flex items-center space-x-2">
@@ -97,15 +102,12 @@ export function VoicePanel({ s }: { s: InfluencerStudioState }) {
                         </div>
                         {v.description && <p className="text-2xs text-slate-400 truncate">{v.description}</p>}
                       </div>
-                    </div>
+                    </label>
                     <div className="flex items-center space-x-2 shrink-0">
                       {v.previewUrl && (
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void new Audio(v.previewUrl).play();
-                          }}
+                          onClick={() => void new Audio(v.previewUrl).play()}
                           className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200"
                           aria-label={`Play ${v.name} sample`}
                           title="Free sample from ElevenLabs"
@@ -116,10 +118,7 @@ export function VoicePanel({ s }: { s: InfluencerStudioState }) {
                       {v.category === 'cloned' && (
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleDeleteClonedVoice(v.id);
-                          }}
+                          onClick={() => void handleDeleteClonedVoice(v.id)}
                           className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900 text-slate-300"
                           aria-label={`Delete ${v.name}`}
                         >
@@ -197,12 +196,12 @@ export function VoicePanel({ s }: { s: InfluencerStudioState }) {
           )}
         </div>
 
-        {/* 4. Talking video */}
+        {/* 3. Talking video */}
         <div className={card}>
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-sm font-bold text-white flex items-center space-x-2">
               <Video className="w-4 h-4 text-purple-300" />
-              <span>4. Talking-head video</span>
+              <span>3. Talking-head video</span>
             </h3>
             <span className="text-2xs font-mono text-purple-300">{costs.video} credits</span>
           </div>
@@ -264,7 +263,7 @@ export function VoicePanel({ s }: { s: InfluencerStudioState }) {
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <span className="text-xs font-bold text-white flex items-center space-x-2">
               <Volume2 className="w-4 h-4 text-emerald-400" />
-              <span>3. Test the voice</span>
+              <span>4. Test the voice</span>
             </span>
             {voiceOn && <span className="text-2xs font-mono text-emerald-400">{costs.voice} credits</span>}
           </div>

@@ -56,12 +56,20 @@ export async function publishAssetNow(
   workspaceId: string,
   assetId: string,
 ): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
-  const r = await apiJson<{ url?: string; status?: string; error?: string }>(
+  const r = await apiJson<{ url?: string }>(
     `${base(workspaceId)}/campaign-assets/${encodeURIComponent(assetId)}/publish`,
     { json: {} },
   );
   if (r.ok && r.data.url) return { ok: true, url: r.data.url };
-  // A failed post (LinkedIn said no) carries LinkedIn's reason in `error`; other refusals use `message`.
-  if (r.data.status === 'failed' && r.data.error) return { ok: false, message: r.data.error };
+  // Refusals and LinkedIn failures both carry a code in `error` and the reason in `message`.
   return { ok: false, message: apiErrorMessage(r, 'Publishing failed.') };
+}
+
+/**
+ * Finishes a LinkedIn sign-in after LinkedIn sends the browser back. The server saves the account only
+ * if the signed-in member is the one who started the connection.
+ */
+export async function completeLinkedInConnect(workspaceId: string, pending: string): Promise<string | null> {
+  const r = await apiJson(`${base(workspaceId)}/social/linkedin/complete`, { json: { pending } });
+  return r.ok ? null : apiErrorMessage(r, 'Could not finish connecting LinkedIn.');
 }

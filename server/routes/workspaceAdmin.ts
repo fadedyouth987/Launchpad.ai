@@ -117,13 +117,13 @@ export function workspaceAdminRoutes() {
       const memberId = String(req.params.memberId);
       if (!/^[A-Za-z0-9_-]{1,128}$/.test(memberId))
         return res.status(400).json({ error: 'INVALID_ID', message: 'Invalid member id.' });
-      const { role } = await removeMember(req.authContext!.uid, ws, memberId);
+      const { role, keysRevoked } = await removeMember(req.authContext!.uid, ws, memberId);
       await recordAudit({
         workspaceId: ws,
         uid: req.authContext!.uid,
         ip: req.ip,
         action: 'workspace.member.removed',
-        details: `Removed member ${memberId} (${role}).`,
+        details: `Removed member ${memberId} (${role}).${keysRevoked ? ` Revoked ${keysRevoked} API key(s) they created.` : ''}`,
         severity: 'warning',
       });
       res.json({ success: true });

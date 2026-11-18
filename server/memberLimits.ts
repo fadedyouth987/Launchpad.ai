@@ -11,10 +11,10 @@
  */
 import type { DbClient } from './db';
 import { ApiError } from './errors';
-import type { PlanId } from './subscriptions';
+import { ACTIVE_STATUSES, PLAN_NAMES, type PlanId } from './subscriptions';
+import { KEY_MEMBER_LIKE } from './apiKeyMembers';
 
 const DEFAULT = 'starter:3,professional:10,enterprise:0';
-const NAMES: Record<PlanId, string> = { starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' };
 
 /** Seat limit per plan; null = unlimited. */
 export function memberLimits(raw = process.env.PLAN_MEMBER_LIMITS || DEFAULT): Record<PlanId, number | null> {
@@ -42,20 +42,20 @@ export async function seatUsage(c: Queryable, workspaceId: string): Promise<Seat
   const { rows } = await c.query(
     `SELECT w.plan,
             s.plan AS sub_plan, s.status AS sub_status,
-            (SELECT count(*)::int FROM workspace_members m WHERE m.workspace_id = w.id AND m.user_id NOT LIKE 'apikey\\_%') AS members,
+            (SELECT count(*)::int FROM workspace_members m WHERE m.workspace_id = w.id AND m.user_id NOT LIKE $2) AS members,
             (SELECT count(*)::int FROM workspace_invites i
               WHERE i.workspace_id = w.id AND i.accepted_at IS NULL AND i.expires_at > now()) AS pending
        FROM workspaces w LEFT JOIN workspace_subscriptions s ON s.workspace_id = w.id
       WHERE w.id = $1`,
-    [workspaceId],
+    [workspaceId, KEY_MEMBER_LIKE],
   );
   const r = rows[0];
   if (!r) throw new ApiError(404, 'NOT_FOUND', 'Workspace not found.');
-  const active = ['active', 'trialing', 'past_due'].includes(r.sub_status);
+  const active = ACTIVE_STATUSES.includes(r.sub_status);
   const plan: PlanId = r.sub_status ? (active ? r.sub_plan : 'starter') : r.plan;
   return {
     plan,
-    planName: NAMES[plan] ?? plan,
+    planName: PLAN_NAMES[plan] ?? plan,
     limit: memberLimits()[plan] ?? null,
     members: Number(r.members),
     pendingInvites: Number(r.pending),

@@ -63,7 +63,13 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
   useEffect(() => {
     void refresh();
     const t = window.setInterval(refresh, 30_000);
-    return () => window.clearInterval(t);
+    // Fired when a LinkedIn sign-in finishes (see Dashboard), so the new account shows right away.
+    const onChanged = () => void refresh();
+    window.addEventListener('launchpad:social-accounts', onChanged);
+    return () => {
+      window.clearInterval(t);
+      window.removeEventListener('launchpad:social-accounts', onChanged);
+    };
   }, [refresh]);
 
   const connect = async () => {

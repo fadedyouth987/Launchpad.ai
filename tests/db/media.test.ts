@@ -13,6 +13,9 @@ vi.stubEnv('PUBLIC_API_URL', 'https://api.example.com');
 
 let talkState: 'started' | 'done' | 'error' = 'started';
 let ttsFails = false;
+let downloadFails = false;
+// Unique per run: workspace_voices.voice_id is unique and the test branch keeps rows between runs.
+const CLONE = `clone-x-${Date.now()}`;
 const calls: string[] = [];
 const fakeFetch = (async (url: string | URL, init: RequestInit = {}) => {
   const u = String(url);
@@ -21,7 +24,7 @@ const fakeFetch = (async (url: string | URL, init: RequestInit = {}) => {
     return Response.json({
       voices: [
         { voice_id: 'std1', name: 'Rachel', category: 'premade' },
-        { voice_id: 'clone-x', name: 'Other WS clone', category: 'cloned' },
+        { voice_id: CLONE, name: 'Other WS clone', category: 'cloned' },
       ],
     });
   if (u.endsWith('/v1/voices/add')) return Response.json({ voice_id: `clone-${Date.now()}` });
@@ -37,7 +40,8 @@ const fakeFetch = (async (url: string | URL, init: RequestInit = {}) => {
           ? { status: 'error', error: { description: 'No face detected' } }
           : { status: 'started' },
     );
-  if (u.startsWith('https://results.d-id.test/')) return new Response(new Uint8Array(5000).fill(9));
+  if (u.startsWith('https://results.d-id.test/'))
+    return downloadFails ? new Response(null, { status: 403 }) : new Response(new Uint8Array(5000).fill(9));
   return Response.json({});
 }) as typeof fetch;
 
@@ -58,11 +62,14 @@ beforeAll(async () => {
   await db().query('UPDATE workspaces SET credits_remaining = 1000 WHERE id = $1', [WS]);
   // Another workspace's clone must never be visible here.
   await db().query(
-    "INSERT INTO workspace_voices (workspace_id, voice_id, name, consent_by) VALUES ($1, 'clone-x', 'Other', 'u')",
-    [OTHER],
+    "INSERT INTO workspace_voices (workspace_id, voice_id, name, consent_by) VALUES ($1, $2, 'Other', 'u')",
+    [OTHER, CLONE],
   );
 });
-afterAll(() => closeDb());
+afterAll(async () => {
+  await db().query('DELETE FROM workspace_voices WHERE workspace_id = ANY($1::text[])', [[WS, OTHER]]);
+  await closeDb();
+});
 
 describe('voices', () => {
   it('lists standard voices but not other workspaces’ clones; cloning needs owner/admin and consent', async () => {
@@ -82,12 +89,28 @@ describe('voices', () => {
     const after = await as(creator).get(m(WS, '/voices'));
     expect(after.body.cloned.map((x: { name: string }) => x.name)).toEqual(['Mine']);
     expect((await as(otherOwner).get(m(OTHER, '/voices'))).body.cloned.map((x: { id: string }) => x.id)).toEqual([
-      'clone-x',
+      CLONE,
     ]);
     // Using another workspace's clone is refused.
-    expect((await as(owner).post(m(WS, '/speech')).send({ voiceId: 'clone-x', text: 'hi' })).body.error).toBe(
+    expect((await as(owner).post(m(WS, '/speech')).send({ voiceId: CLONE, text: 'hi' })).body.error).toBe(
       'UNKNOWN_VOICE',
     );
+  });
+
+  it('caps cloned voices per workspace (they share one ElevenLabs account)', async () => {
+    // 'Mine' exists from the test above; fill up to the default limit of 5.
+    for (let i = 0; i < 4; i++) {
+      await db().query(
+        "INSERT INTO workspace_voices (workspace_id, voice_id, name, consent_by) VALUES ($1, $2, 'Filler', 'u')",
+        [WS, `filler-${Date.now()}-${i}`],
+      );
+    }
+    const r = await as(owner)
+      .post(m(WS, '/voices/clone?name=Sixth&consent=yes'))
+      .set('content-type', 'audio/mpeg')
+      .send(Buffer.alloc(30_000, 1));
+    expect(r.status).toBe(409);
+    expect(r.body.error).toBe('VOICE_LIMIT');
   });
 });
 
@@ -101,6 +124,9 @@ describe('speech', () => {
     const file = await as(viewer).get(r.body.media.url);
     expect(file.headers['content-type']).toBe('audio/mpeg');
     expect(file.body.length).toBe(2000);
+    // Members of another workspace cannot read it.
+    expect((await as(otherOwner).get(r.body.media.url)).status).toBe(403);
+    expect((await as(otherOwner).get(m(WS, `/${r.body.media.id}`))).status).toBe(403);
     expect((await as(viewer).post(m(WS, '/speech')).send({ voiceId: 'std1', text: 'x' })).status).toBe(403);
     ttsFails = true;
     const fail = await as(creator).post(m(WS, '/speech')).send({ voiceId: 'std1', text: 'Hello' });
@@ -149,6 +175,24 @@ describe('talking video', () => {
     const item = (await as(owner).get(m(WS, `/${start.body.media.id}`))).body.media;
     expect(item.status).toBe('failed');
     expect(item.error).toMatch(/No face detected/);
+    expect(await balanceOf(WS)).toBe(before);
+  });
+
+  it('a finished render whose download keeps failing is failed and refunded after the timeout', async () => {
+    talkState = 'started';
+    const before = await balanceOf(WS);
+    const start = await as(owner)
+      .post(m(WS, '/videos'))
+      .send({ voiceId: 'std1', text: 'Third', imageUrl: 'https://images.example.com/face.jpg' });
+    const id = start.body.media.id;
+    talkState = 'done';
+    downloadFails = true;
+    // Within the timeout a failed download just waits for the next check.
+    expect((await as(owner).get(m(WS, `/${id}`))).body.media.status).toBe('processing');
+    await db().query("UPDATE generated_media SET created_at = now() - interval '21 minutes' WHERE id = $1", [id]);
+    const item = (await as(owner).get(m(WS, `/${id}`))).body.media;
+    downloadFails = false;
+    expect(item.status).toBe('failed');
     expect(await balanceOf(WS)).toBe(before);
   });
 

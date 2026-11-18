@@ -24,6 +24,10 @@ const linkedinFetch = (async (url: string | URL) => {
     postCount++;
     return new Response(null, { status: 201, headers: { 'x-restli-id': `urn:li:share:${postCount}` } });
   }
+  if (String(url).endsWith('/oauth/v2/accessToken')) {
+    return Response.json({ access_token: 'tok-oauth', expires_in: 3600, scope: 'openid profile w_member_social' });
+  }
+  if (String(url).endsWith('/v2/userinfo')) return Response.json({ sub: 'member123', name: 'Test Member' });
   return Response.json({});
 }) as typeof fetch;
 
@@ -81,6 +85,15 @@ describe('server-side approval', () => {
     expect(rows[0].s).toBe('pending_review');
     // An approver may edit a cleared post without losing the approval.
     expect((await put(approver, asset(id, { ...when, caption: 'Approved text' }))).body.status).toBe('scheduled');
+  });
+
+  it('a rejected post can only be cleared again by an approver', async () => {
+    const id = `asset-soc-${Date.now()}-r`;
+    expect((await put(creator, asset(id, { status: 'rejected' }))).status).toBe(201);
+    const denied = await put(creator, asset(id, { status: 'approved' }));
+    expect(denied.status).toBe(403);
+    expect(await statusOf(id)).toBe('rejected');
+    expect((await put(approver, asset(id, { status: 'approved' }))).body.status).toBe('approved');
   });
 });
 
@@ -154,13 +167,10 @@ describe('LinkedIn publishing', () => {
       owner,
       asset(later, { status: 'scheduled', scheduledTime: new Date(Date.now() + 3_600_000).toISOString() }),
     );
-    const before = postCount;
-    const runs = await Promise.all([
-      publishDue({ fetchImpl: linkedinFetch }),
-      publishDue({ fetchImpl: linkedinFetch }),
-    ]);
-    expect(runs.reduce((n, r) => n + r.published, 0)).toBe(1);
-    expect(postCount).toBe(before + 1);
+    await Promise.all([publishDue({ fetchImpl: linkedinFetch }), publishDue({ fetchImpl: linkedinFetch })]);
+    // Assert on this test's own asset only: the shared test branch may hold other workspaces' due posts.
+    const rows = (await db().query('SELECT status, attempts FROM social_posts WHERE asset_id = $1', [due])).rows;
+    expect(rows).toEqual([{ status: 'published', attempts: 1 }]);
     expect(await statusOf(due)).toBe('published');
     expect(await statusOf(later)).toBe('scheduled');
     // The HTTP endpoint needs the cron secret.
@@ -169,6 +179,41 @@ describe('LinkedIn publishing', () => {
       .post('/api/internal/publish-due')
       .set('authorization', 'Bearer test-cron-secret-123456');
     expect(ok.body.success).toBe(true);
+  });
+
+  it('LinkedIn sign-in is finished only by the member who started it', async () => {
+    const start = await as(owner).post(`/api/workspaces/${WS}/social/linkedin/connect`);
+    const state = new URL(start.body.url).searchParams.get('state')!;
+    // A tampered state never reaches LinkedIn.
+    const bad = await request(app).get(`/api/social/linkedin/callback?code=c&state=${state.slice(0, -4)}AAAA`);
+    expect(bad.status).toBe(302);
+    expect(bad.headers.location).toContain('reason=INVALID_STATE');
+    // A non-string error parameter does not hang the request.
+    expect((await request(app).get('/api/social/linkedin/callback?error[x]=1')).status).toBe(302);
+    // The callback saves nothing; it hands the sealed result back to the web app.
+    const cb = await request(app).get(`/api/social/linkedin/callback?code=c&state=${encodeURIComponent(state)}`);
+    const back = new URL(cb.headers.location);
+    expect(back.searchParams.get('social')).toBe('pending');
+    const pending = back.searchParams.get('pending')!;
+    // Someone else (e.g. the person a connect link was sent to) cannot finish it.
+    const stolen = await as(creator).post(`/api/workspaces/${WS}/social/linkedin/complete`).send({ pending });
+    expect(stolen.status).toBe(403);
+    expect(stolen.body.error).toBe('NOT_YOUR_CONNECTION');
+    const tampered = await as(owner)
+      .post(`/api/workspaces/${WS}/social/linkedin/complete`)
+      .send({ pending: pending.slice(0, -4) + 'AAAA' });
+    expect(tampered.body.error).toBe('INVALID_STATE');
+    const ok = await as(owner).post(`/api/workspaces/${WS}/social/linkedin/complete`).send({ pending });
+    expect(ok.status).toBe(200);
+    expect(ok.body.accounts[0]).toMatchObject({ provider: 'linkedin', externalId: 'member123' });
+  });
+
+  it('publishing a non-LinkedIn post answers with a code', async () => {
+    const id = `asset-soc-${Date.now()}-ig`;
+    await put(owner, asset(id, { status: 'approved', platform: 'instagram' }));
+    const r = await as(owner).post(`/api/workspaces/${WS}/campaign-assets/${id}/publish`);
+    expect(r.status).toBe(409);
+    expect(r.body.error).toBe('PLATFORM_NOT_SUPPORTED');
   });
 
   it('owners can disconnect; creators cannot', async () => {

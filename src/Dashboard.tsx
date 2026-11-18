@@ -30,7 +30,7 @@ import { SidebarNav } from './components/SidebarNav';
 import { TopHeaderBar } from './components/TopHeaderBar';
 import { TopUpModal } from './components/Modals/TopUpModal';
 import { PlanModal } from './components/Modals/PlanModal';
-import { publishAssetNow } from './lib/socialApi';
+import { completeLinkedInConnect, publishAssetNow } from './lib/socialApi';
 import { FloatingMarketingWidget } from './components/FloatingMarketingWidget';
 import { newId } from './lib/ids';
 import { findNavItem, type PageAction } from './navigation';
@@ -196,20 +196,47 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
     const wsId = currentWorkspace.id;
     const prevById = new Map(prev.map((a) => [a.id, a]));
     const nextIds = new Set(next.map((a) => a.id));
-    const ops: Promise<void>[] = [];
+    // Each op remembers how to undo itself locally if the server refuses it.
+    const ops: { asset: CampaignAsset; old?: CampaignAsset; run: Promise<CampaignAsset['status'] | null> }[] = [];
     for (const a of next) {
       const old = prevById.get(a.id);
-      if (!old || old !== a) ops.push(saveCampaignAsset(wsId, a));
+      if (!old || old !== a) ops.push({ asset: a, old, run: saveCampaignAsset(wsId, a) });
     }
-    for (const a of prev) if (!nextIds.has(a.id)) ops.push(deleteCampaignAsset(wsId, a.id));
+    for (const a of prev) {
+      if (!nextIds.has(a.id)) ops.push({ asset: a, old: a, run: deleteCampaignAsset(wsId, a.id).then(() => null) });
+    }
+    // Patches local state without saving again (the server already has, or refused, these changes).
+    const patchLocal = (fn: (list: CampaignAsset[]) => CampaignAsset[]) => {
+      assetsRef.current = fn(assetsRef.current);
+      setCampaignAssets(assetsRef.current);
+    };
     pendingSaves.current += 1;
-    Promise.allSettled(ops).then((results) => {
+    Promise.allSettled(ops.map((o) => o.run)).then((results) => {
       pendingSaves.current -= 1;
-      const failed = results.filter((r) => r.status === 'rejected');
-      if (failed.length) {
-        failed.forEach((f) => console.error('[assets] save failed', (f as PromiseRejectedResult).reason));
-        setSyncError(`${failed.length} change(s) could not be saved to the database.`);
-      }
+      const messages: string[] = [];
+      results.forEach((r, i) => {
+        const { asset, old } = ops[i];
+        const deleted = !nextIds.has(asset.id);
+        if (r.status === 'rejected') {
+          console.error('[assets] save failed', r.reason);
+          messages.push((r.reason as Error)?.message || 'Could not save.');
+          // Undo the optimistic change: restore the previous version (or drop a new asset that was refused).
+          patchLocal((list) =>
+            deleted
+              ? list.some((x) => x.id === asset.id)
+                ? list
+                : [...list, old!]
+              : old
+                ? list.map((x) => (x.id === asset.id && x === asset ? old : x))
+                : list.filter((x) => !(x.id === asset.id && x === asset)),
+          );
+        } else if (!deleted && r.value && r.value !== asset.status) {
+          // Saved with a different status than sent (a writer's edit to an approved post went back to review).
+          patchLocal((list) => list.map((x) => (x.id === asset.id && x === asset ? { ...x, status: r.value! } : x)));
+          messages.push(`"${asset.title}" was changed after approval, so it went back to review.`);
+        }
+      });
+      if (messages.length) setSyncError([...new Set(messages)].join(' '));
     });
   };
 
@@ -302,6 +329,22 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const social = params.get('social');
+    if (social === 'pending') {
+      // Back from LinkedIn: finish the connection with this browser's signed-in session.
+      const workspace = params.get('workspace') || '';
+      const pending = params.get('pending') || '';
+      // The URL is cleared first, so a re-run of this effect (React StrictMode) does not send it twice.
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.hash}`);
+      void completeLinkedInConnect(workspace, pending).then((err) => {
+        if (!err) window.dispatchEvent(new Event('launchpad:social-accounts'));
+        setCheckoutNotice(
+          err
+            ? `LinkedIn could not be connected: ${err}`
+            : 'LinkedIn connected. Approved posts scheduled for LinkedIn will now be published automatically.',
+        );
+      });
+      return;
+    }
     if (social) {
       const reason = params.get('reason') || '';
       setCheckoutNotice(

@@ -14,15 +14,13 @@ import { DEMO_MODE } from './auth';
 import { db, withTx } from './db';
 import { ApiError } from './errors';
 import { assertRole, type Role } from './workspaces';
+import { isKeyMember, keyMemberId, KEY_MEMBER_PREFIX } from './apiKeyMembers';
 
 export type Scope = 'read' | 'write' | 'publish';
 export const SCOPES: Scope[] = ['read', 'write', 'publish'];
 export const KEY_PREFIX = 'lp_live_';
 export const MAX_KEYS_PER_WORKSPACE = 20;
-const MEMBER_PREFIX = 'apikey_';
-
-export const isKeyMember = (uid: string) => uid.startsWith(MEMBER_PREFIX);
-export const keyMemberId = (keyId: string) => `${MEMBER_PREFIX}${keyId}`;
+export { isKeyMember, keyMemberId } from './apiKeyMembers';
 const hashKey = (key: string) => createHash('sha256').update(key).digest('hex');
 
 export function roleForScopes(scopes: Scope[]): Role {
@@ -149,7 +147,7 @@ export async function authenticateKey(key: string): Promise<KeyPrincipal | null>
 /** Display name of a key member for audit logs. */
 export async function keyMemberName(uid: string): Promise<string | null> {
   if (!isKeyMember(uid)) return null;
-  const { rows } = await db().query('SELECT name FROM api_keys WHERE id = $1', [uid.slice(MEMBER_PREFIX.length)]);
+  const { rows } = await db().query('SELECT name FROM api_keys WHERE id = $1', [uid.slice(KEY_MEMBER_PREFIX.length)]);
   return `API key "${rows[0]?.name ?? 'deleted'}"`;
 }
 

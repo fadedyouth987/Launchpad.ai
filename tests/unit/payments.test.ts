@@ -72,4 +72,16 @@ describe('plan subscriptions', () => {
     const huge = { parent: { subscription_details: { metadata: { ...meta, upgrade_credits: '999999' } } } };
     expect(creditsForInvoice(inv({ ...huge, billing_reason: 'subscription_update' })).credits).toBe(3000);
   });
+
+  it('upgrade credits are prorated by the share of the price difference actually paid', () => {
+    // Starter -> Professional: 20000 cents a month more, 2000 extra credits a month.
+    const m = { ...meta, upgrade_price_diff: '20000' };
+    const p = { parent: { subscription_details: { metadata: m } } };
+    const up = (paid: number) =>
+      creditsForInvoice(inv({ ...p, billing_reason: 'subscription_update', amount_paid: paid }));
+    expect(up(20000).credits).toBe(2000); // the whole month
+    expect(up(5000).credits).toBe(500); // a quarter of the month left
+    expect(up(100).credits).toBe(10); // last day: a few dollars buy only a few credits
+    expect(up(50000).credits).toBe(2000); // never more than the full difference
+  });
 });

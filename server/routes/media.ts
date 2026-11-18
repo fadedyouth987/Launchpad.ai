@@ -16,6 +16,7 @@ import {
   getMediaContent,
   listMedia,
   refreshVideo,
+  refundedErrors,
   removeClonedVoice,
   startVideo,
   verifyMediaSignature,
@@ -70,18 +71,34 @@ const notConfigured = (what: 'voice' | 'video') =>
       : 'Talking videos are not set up on this server (ELEVENLABS_API_KEY, DID_API_KEY and AI_KEYS_ENCRYPTION_KEY or MEDIA_URL_SECRET).',
   );
 
-/** Provider errors become 502s with the provider's (safe, user-facing) message. */
+/**
+ * Provider errors become 502s with the provider's (safe, user-facing) message. The refund is mentioned
+ * only when credits were actually taken and given back (not e.g. when the voice list failed first).
+ */
 const providerError = (err: unknown) =>
   err instanceof ElevenLabsError || err instanceof DidError
-    ? new ApiError(err.status === 400 ? 400 : 502, 'PROVIDER_FAILED', `${err.message} Your credits were refunded.`)
+    ? new ApiError(
+        err.status === 400 ? 400 : 502,
+        'PROVIDER_FAILED',
+        refundedErrors.has(err) ? `${err.message} Your credits were refunded.` : err.message,
+      )
     : err;
 
-/** This API's public origin, used to give D-ID download links. */
+/**
+ * This API's public origin, used to give D-ID download links. PUBLIC_API_URL; only on Neon Functions,
+ * whose platform sets the Host header, is the request's host used. Elsewhere the Host header is
+ * client-controlled, so it is never trusted.
+ */
 function apiBase(req: express.Request): string {
   const explicit = process.env.PUBLIC_API_URL?.trim();
   if (explicit) return explicit.replace(/\/+$/, '');
-  const host = req.get('host') || 'localhost';
-  return `${/^(localhost|127\.)/.test(host) ? 'http' : 'https'}://${host}`;
+  const host = req.get('host');
+  if (process.env.LAUNCHPAD_RUNTIME === 'neon-functions' && host) return `https://${host}`;
+  throw new ApiError(
+    503,
+    'PUBLIC_URL_REQUIRED',
+    "Talking videos need PUBLIC_API_URL (this API's public https origin) so D-ID can download the photo and audio.",
+  );
 }
 
 export function mediaRoutes(fetchImpl?: typeof fetch) {

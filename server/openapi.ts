@@ -19,7 +19,7 @@ const platform = { type: 'string', enum: ['instagram', 'tiktok', 'linkedin', 'tw
 const asset = {
   type: 'object',
   description:
-    'A post. Create or update with PUT (the whole object). With the write permission a post can be draft or pending_review; approving or scheduling needs publish.',
+    'A post. Create or update with PUT (the whole object). With the write permission a post can be draft or pending_review; approving or scheduling needs publish. Changing the text, hashtags, image, title or platform of an approved/scheduled post with only write saves it as pending_review (see status in the response).',
   required: [
     'id',
     'title',
@@ -102,8 +102,11 @@ export const OPENAPI = {
         parameters: [ws, id('id')],
         responses: {
           '200': ok('{ url }'),
-          '409': { description: 'Not approved, already published, or LinkedIn not connected' },
-          '502': { description: 'LinkedIn refused' },
+          '409': {
+            description:
+              'error is one of PLATFORM_NOT_SUPPORTED, NOT_APPROVED, NO_ACCOUNT, LINKEDIN_NOT_CONFIGURED, ALREADY_PUBLISHED, IN_PROGRESS, FAILED_NEEDS_RETRY',
+          },
+          '502': { description: "LinkedIn refused: error PUBLISH_FAILED, LinkedIn's reason in message" },
           ...errors,
         },
       },

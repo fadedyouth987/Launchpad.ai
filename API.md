@@ -51,8 +51,14 @@ The full list of endpoints, with request and response shapes, is the OpenAPI des
 ## Errors
 
 `401` invalid/revoked/expired key · `402` not enough credits · `403` the key's permissions (or keys in general)
-cannot do this · `409` conflict (e.g. post not approved) · `429` rate limited (per key). Bodies are
-`{ "error": "CODE", "message": "…" }`.
+cannot do this · `409` conflict (e.g. post not approved) · `429` rate limited (per key) · `502` the network
+(LinkedIn) refused the post (`PUBLISH_FAILED`). Bodies are `{ "error": "CODE", "message": "…" }`.
+
+Publishing answers `409` with one of `PLATFORM_NOT_SUPPORTED`, `NOT_APPROVED`, `NO_ACCOUNT`,
+`LINKEDIN_NOT_CONFIGURED`, `ALREADY_PUBLISHED`, `IN_PROGRESS` or `FAILED_NEEDS_RETRY`.
+
+A `write` key that changes the text, hashtags, image, title or network of an approved or scheduled post saves it
+as `pending_review` (the response's `status` says so): it needs approval again before it goes out.
 
 ## Getting events back
 

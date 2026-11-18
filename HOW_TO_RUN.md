@@ -346,12 +346,16 @@ webhooks.
    default `202608`); LinkedIn retires versions after about a year, and a retired one fails with HTTP 426.
 4. Run `npm run db:migrate` (adds `005_social.sql`) and redeploy (`npm run deploy:api`; `neon deploy` also creates
    the `publish-due` trigger from `neon.ts`).
-5. In the app: Publish > Publisher > **Connect LinkedIn** (owners/admins).
+5. In the app: Publish > Publisher > **Connect LinkedIn** (owners/admins). After LinkedIn, the browser comes back
+   to the web app, which finishes the connection (`POST /api/workspaces/:id/social/linkedin/complete`) with the
+   signed-in session; it only succeeds for the member who started it, so a connect link sent to someone else
+   cannot put their LinkedIn account into your workspace.
 
 How it works:
 
 - **Approval is enforced on the server**: only owners, admins and approvers can move a post into approved,
-  scheduled or published. Writers can still edit or reschedule a post that is already approved.
+  scheduled or published. Writers can still reschedule a post that is already approved, but changing what was
+  approved (text, hashtags, image, title or network) sends it back to pending review.
 - **Scheduler**: on Neon Functions the `publish-due` trigger in `neon.ts` calls `POST /api/internal/publish-due`
   every minute (accepted only with Neon's trigger header). A long-running server (`npm run dev`, Docker, Cloud Run)
   runs the same check in-process; `PUBLISH_SCHEDULER=off` turns that off. Any other cron can call the endpoint with
@@ -379,21 +383,23 @@ talking-head video of any script. The chosen voice is saved with the influencer.
 2. **Videos:** also set `DID_API_KEY` (D-ID Studio > API, the key exactly as shown) and `AI_KEYS_ENCRYPTION_KEY` or
    `MEDIA_URL_SECRET`. D-ID downloads the photo and the audio from this API through signed links that expire after
    one hour (`GET /api/public/media/:id?exp&sig`, never videos), so the API must be reachable from the internet:
-   set `PUBLIC_API_URL` to its https origin (on Neon Functions the request host is used when unset). A local
+   set `PUBLIC_API_URL` to its https origin (required; only on Neon Functions is the request host used when unset,
+   since elsewhere the Host header is client-controlled). A local
    `npm run dev` server cannot make videos.
-3. Run `npm run db:migrate` (adds `006_media.sql`) and redeploy.
+3. Run `npm run db:migrate` (adds `006_media.sql` and `008_media_source_idx.sql`) and redeploy.
 
 How it works:
 
 - **Credits:** a speech clip costs `AI_VOICE_COST_CREDITS` (5), a video `AI_VIDEO_COST_CREDITS` (60, including its
   speech). Credits are reserved first and refunded if ElevenLabs or D-ID fails, the render is rejected, or it does
-  not finish within 20 minutes.
+  not finish within 20 minutes (whatever the reason, including a download from D-ID that keeps failing).
 - **Video rendering is asynchronous:** the video row stays "processing"; the browser polls it every 5 s and the
   minute scheduler (`publish-due`) also checks D-ID, so videos finish even if nobody is watching. The MP4 is copied
   into Postgres because D-ID's result links expire.
 - **Cloned voices** belong to the server's ElevenLabs account but each workspace only sees its own clones (table
   `workspace_voices`). Cloning (owners/admins) needs a confirmation that the member has the speaker's permission;
-  it is recorded in the audit log. Deleting a cloned voice also deletes it at ElevenLabs.
+  it is recorded in the audit log. Deleting a cloned voice also deletes it at ElevenLabs. All workspaces share the
+  account's voice slots, so each can have at most `AI_VOICE_CLONE_LIMIT` (5) clones.
 - Photos: an https image URL is passed to D-ID directly; uploaded (`data:`) and generated images are copied and
   served through a signed link. Use a clear, front-facing photo with one face.
 - Files live in Postgres (`generated_media`, up to 50 MB each). For heavy video use, move them to object storage.
@@ -407,7 +413,9 @@ is `GET /api/v1/openapi.json`.
 - A key is a hidden member of its workspace (`workspace_members.user_id = 'apikey_<id>'`) with the role its
   permissions give (read = viewer, write = creator, publish = approver), so membership, role, credit, approval and
   per-caller rate-limit checks all apply unchanged. Key members are not listed on the Team page and do not use plan
-  seats. Revoking deletes the member row.
+  seats. Revoking deletes the member row. Key members cannot be promoted or removed through the member endpoints.
+- A key stops working when the owner/admin who created it is removed from the workspace or stops being an
+  owner/admin, so an offboarded admin's integrations do not keep posting.
 - `requireAuth` accepts `Bearer lp_live_…` only for the endpoints in `KEY_ROUTES` (`server/apiKeys.ts`); anything
   else (members, billing, webhooks, settings, GDPR, key management, creating workspaces) answers 403.
 - Audit entries show the actor as `API key "<name>"`. Keys can expire (30/90/365 days) and record when last used.
