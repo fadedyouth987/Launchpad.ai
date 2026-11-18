@@ -242,17 +242,17 @@ export function useSocialScheduler(props: SocialSchedulerProps) {
   const renderPlatformIcon = (platform: Platform) => {
     switch (platform) {
       case 'linkedin':
-        return <Linkedin className="w-3 h-3 text-blue-400" />;
+        return <Linkedin className="w-3 h-3 text-blue-700 dark:text-blue-400" />;
       case 'instagram':
-        return <Instagram className="w-3 h-3 text-pink-400" />;
+        return <Instagram className="w-3 h-3 text-pink-700 dark:text-pink-400" />;
       case 'tiktok':
-        return <Video className="w-3 h-3 text-teal-400" />;
+        return <Video className="w-3 h-3 text-teal-700 dark:text-teal-400" />;
       case 'twitter':
-        return <Twitter className="w-3 h-3 text-sky-400" />;
+        return <Twitter className="w-3 h-3 text-sky-700 dark:text-sky-400" />;
       case 'facebook':
-        return <Facebook className="w-3 h-3 text-indigo-300" />;
+        return <Facebook className="w-3 h-3 text-indigo-700 dark:text-indigo-300" />;
       default:
-        return <Globe className="w-3 h-3 text-slate-400" />;
+        return <Globe className="w-3 h-3 text-ink-subtle" />;
     }
   };
 
@@ -260,17 +260,17 @@ export function useSocialScheduler(props: SocialSchedulerProps) {
   const getPlatformBg = (platform: Platform) => {
     switch (platform) {
       case 'linkedin':
-        return 'bg-blue-950/80 border-blue-800/80 text-blue-200';
+        return 'bg-blue-50 dark:bg-blue-950/80 border-blue-200 dark:border-blue-800/80 text-blue-800 dark:text-blue-200';
       case 'instagram':
-        return 'bg-pink-950/80 border-pink-800/80 text-pink-200';
+        return 'bg-pink-50 dark:bg-pink-950/80 border-pink-200 dark:border-pink-800/80 text-pink-800 dark:text-pink-200';
       case 'tiktok':
-        return 'bg-teal-950/80 border-teal-800/80 text-teal-200';
+        return 'bg-teal-50 dark:bg-teal-950/80 border-teal-200 dark:border-teal-800/80 text-teal-800 dark:text-teal-200';
       case 'twitter':
-        return 'bg-sky-950/80 border-sky-800/80 text-sky-200';
+        return 'bg-sky-50 dark:bg-sky-950/80 border-sky-200 dark:border-sky-800/80 text-sky-800 dark:text-sky-200';
       case 'facebook':
-        return 'bg-indigo-950/80 border-indigo-800/80 text-indigo-200';
+        return 'bg-indigo-50 dark:bg-indigo-950/80 border-indigo-200 dark:border-indigo-800/80 text-indigo-800 dark:text-indigo-200';
       default:
-        return 'bg-slate-900 border-slate-800 text-slate-300';
+        return 'bg-surface border-line text-ink-muted';
     }
   };
 

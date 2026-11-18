@@ -62,10 +62,10 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({ currentWorkspace, isOpen
       label="Top up credits"
       className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     >
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl relative">
+      <div className="bg-surface border border-line rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl relative">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg"
+          className="absolute top-4 right-4 text-ink-subtle hover:text-ink p-1 rounded-lg"
           aria-label="Close"
         >
           <X className="w-5 h-5" />
@@ -73,16 +73,16 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({ currentWorkspace, isOpen
 
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
-            <span className="p-2 rounded-xl bg-amber-950 text-amber-400 border border-amber-800/60">
+            <span className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
               <Zap className="w-5 h-5" />
             </span>
-            <h3 className="text-lg font-bold text-white">Top up credits</h3>
+            <h2 className="text-lg font-bold text-ink">Top up credits</h2>
           </div>
-          <p className="text-sm text-slate-300">
-            Add credits to <strong className="text-white">{currentWorkspace.name}</strong>.{' '}
+          <p className="text-sm text-ink-muted">
+            Add credits to <strong className="text-ink">{currentWorkspace.name}</strong>.{' '}
             {enabled
               ? 'You pay on Stripe’s secure page; credits appear here as soon as Stripe confirms the payment. Owners and admins can buy.'
-              : 'Payments are not connected on this server, so purchases are off. The server admin must set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET.'}
+              : 'Billing isn’t set up on this server yet, so credits can’t be bought. Ask your admin to connect payments.'}
           </p>
         </div>
 
@@ -98,35 +98,35 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({ currentWorkspace, isOpen
                 onClick={() => setSelected(pkg.credits)}
                 className={`p-4 rounded-xl border transition-all space-y-2 text-center ${
                   isSelected
-                    ? 'bg-amber-950/40 border-amber-500 ring-1 ring-amber-500'
-                    : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                    ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500 ring-1 ring-amber-500'
+                    : 'bg-canvas border-line hover:border-line-strong'
                 }`}
               >
-                <div className="font-mono text-xl font-extrabold text-white">+{pkg.credits.toLocaleString()}</div>
-                <div className="text-sm text-slate-300 font-semibold">{money(pkg.amount, packs!.currency)}</div>
+                <div className="font-mono text-xl font-extrabold text-ink">+{pkg.credits.toLocaleString()}</div>
+                <div className="text-sm text-ink-muted font-semibold">{money(pkg.amount, packs!.currency)}</div>
               </button>
             );
           })}
         </div>
 
-        <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-sm text-slate-300 flex items-center justify-between">
+        <div className="p-3 bg-canvas rounded-xl border border-line text-sm text-ink-muted flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <CreditCard className="w-4 h-4 text-indigo-300" />
+            <CreditCard className="w-4 h-4 text-indigo-700 dark:text-indigo-300" />
             <span>{enabled ? 'Stripe Checkout connected' : 'No payment provider connected: purchases are off'}</span>
           </div>
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <ShieldCheck className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
         </div>
 
         {error && (
-          <p className="text-sm font-semibold text-rose-300" role="alert">
+          <p className="text-sm font-semibold text-rose-700 dark:text-rose-300" role="alert">
             {error}
           </p>
         )}
 
-        <div className="flex items-center justify-end space-x-3 pt-2 border-t border-slate-800">
+        <div className="flex items-center justify-end space-x-3 pt-2 border-t border-line">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white bg-slate-800"
+            className="px-4 py-2.5 rounded-xl text-sm font-medium text-ink-muted hover:text-ink bg-surface-muted"
           >
             Cancel
           </button>
@@ -134,7 +134,7 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({ currentWorkspace, isOpen
             onClick={checkout}
             disabled={!enabled || busy || !selected}
             data-testid={enabled ? 'topup-checkout' : 'topup-disabled'}
-            className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-amber-600 hover:bg-amber-500 disabled:bg-slate-800 disabled:text-slate-400 disabled:cursor-not-allowed flex items-center space-x-2"
+            className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-amber-600 hover:bg-amber-500 disabled:bg-surface-muted disabled:text-ink-subtle disabled:cursor-not-allowed flex items-center space-x-2"
           >
             <Zap className="w-4 h-4" />
             <span>{!enabled ? 'Payments not connected' : busy ? 'Opening Stripe…' : 'Pay with Stripe'}</span>

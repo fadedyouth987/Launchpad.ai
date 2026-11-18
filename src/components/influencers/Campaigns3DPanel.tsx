@@ -14,7 +14,7 @@ export function Campaigns3DPanel({ s }: { s: InfluencerStudioState }) {
       {/* Real-time WebGL 3D Canvas Asset Studio */}
       <Suspense
         fallback={
-          <div role="status" className="p-8 text-center text-sm text-slate-400">
+          <div role="status" className="p-8 text-center text-sm text-ink-subtle">
             Loading 3D viewer…
           </div>
         }
@@ -23,23 +23,24 @@ export function Campaigns3DPanel({ s }: { s: InfluencerStudioState }) {
       </Suspense>
 
       {/* Ticker Banner */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between overflow-hidden">
+      <div className="bg-surface border border-line p-4 rounded-2xl flex items-center justify-between overflow-hidden">
         <div className="flex items-center space-x-3">
           <span className="flex h-3 w-3 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
           </span>
-          <span className="text-xs font-bold text-white uppercase tracking-wider">3D Marketing Broadcast Engine</span>
+          <span className="text-xs font-bold text-ink uppercase tracking-wider">3D Marketing Broadcast Engine</span>
         </div>
-        <div className="hidden sm:flex items-center space-x-6 text-xs text-slate-400 font-mono">
+        <div className="hidden sm:flex items-center space-x-6 text-xs text-ink-subtle font-mono">
           <span>
-            Active Broadcasts: <strong className="text-emerald-400 font-bold">3 Campaigns</strong>
+            Active Broadcasts: <strong className="text-emerald-700 dark:text-emerald-400 font-bold">3 Campaigns</strong>
           </span>
           <span>
-            Global Reach: <strong className="text-indigo-300 font-bold">456,800 Impressions</strong>
+            Global Reach:{' '}
+            <strong className="text-indigo-700 dark:text-indigo-300 font-bold">456,800 Impressions</strong>
           </span>
           <span>
-            Avg ROI: <strong className="text-amber-400 font-bold">17.7x</strong>
+            Avg ROI: <strong className="text-amber-700 dark:text-amber-400 font-bold">17.7x</strong>
           </span>
         </div>
       </div>
@@ -49,13 +50,13 @@ export function Campaigns3DPanel({ s }: { s: InfluencerStudioState }) {
         {running3DCampaigns.map((camp) => (
           <div
             key={camp.id}
-            className="group relative bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800 rounded-2xl p-6 space-y-5 transition-all duration-500 hover:-translate-y-2 hover:rotate-1 hover:shadow-2xl hover:shadow-indigo-500/20 hover:border-indigo-500/60 flex flex-col justify-between"
+            className="group relative bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-line rounded-2xl p-6 space-y-5 transition-all duration-500 hover:-translate-y-2 hover:rotate-1 hover:shadow-2xl hover:shadow-indigo-500/20 hover:border-indigo-500/60 flex flex-col justify-between"
             style={{
               transformStyle: 'preserve-3d',
             }}
           >
             {/* Visual Media Background Cover with 3D Depth */}
-            <div className="relative rounded-xl overflow-hidden h-48 border border-slate-800">
+            <div className="relative rounded-xl overflow-hidden h-48 border border-line">
               <SafeImg
                 src={camp.mediaUrl}
                 alt={camp.title}
@@ -63,7 +64,7 @@ export function Campaigns3DPanel({ s }: { s: InfluencerStudioState }) {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
 
-              <span className="absolute top-3 left-3 bg-slate-950 backdrop-blur-md px-2.5 py-1 rounded-full text-2xs font-bold text-emerald-400 border border-emerald-800/60 flex items-center space-x-1">
+              <span className="absolute top-3 left-3 bg-canvas backdrop-blur-md px-2.5 py-1 rounded-full text-2xs font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 flex items-center space-x-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 <span>{camp.badge}</span>
               </span>
@@ -79,40 +80,40 @@ export function Campaigns3DPanel({ s }: { s: InfluencerStudioState }) {
                 <SafeImg
                   src={camp.influencerAvatar}
                   alt={camp.influencerName}
-                  className="w-10 h-10 rounded-xl object-cover border border-slate-700"
+                  className="w-10 h-10 rounded-xl object-cover border border-line-strong"
                 />
                 <div>
-                  <h3 className="text-sm font-extrabold text-white group-hover:text-indigo-400 transition-colors">
+                  <h2 className="text-sm font-extrabold text-ink group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">
                     {camp.title}
-                  </h3>
-                  <p className="text-2xs text-slate-400">
-                    AI Influencer: <strong className="text-slate-200">{camp.influencerName}</strong>
+                  </h2>
+                  <p className="text-2xs text-ink-subtle">
+                    AI Influencer: <strong className="text-ink">{camp.influencerName}</strong>
                   </p>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-300 leading-relaxed italic">{camp.tagline}</p>
+              <p className="text-xs text-ink-muted leading-relaxed italic">{camp.tagline}</p>
             </div>
 
             {/* 3D Performance Stats Box */}
-            <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800/80 grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="bg-canvas p-3.5 rounded-xl border border-line/80 grid grid-cols-3 gap-2 text-center text-xs">
               <div>
-                <span className="text-2xs text-slate-400 block uppercase">Reach</span>
-                <span className="font-mono font-bold text-slate-200">{camp.impressions}</span>
+                <span className="text-2xs text-ink-subtle block uppercase">Reach</span>
+                <span className="font-mono font-bold text-ink">{camp.impressions}</span>
               </div>
               <div>
-                <span className="text-2xs text-slate-400 block uppercase">Clicks</span>
-                <span className="font-mono font-bold text-indigo-300">{camp.clicks}</span>
+                <span className="text-2xs text-ink-subtle block uppercase">Clicks</span>
+                <span className="font-mono font-bold text-indigo-700 dark:text-indigo-300">{camp.clicks}</span>
               </div>
               <div>
-                <span className="text-2xs text-slate-400 block uppercase">ROI</span>
-                <span className="font-mono font-bold text-emerald-400">{camp.roi}</span>
+                <span className="text-2xs text-ink-subtle block uppercase">ROI</span>
+                <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{camp.roi}</span>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-              <span className="text-slate-400 font-medium">Live Campaign Dispatch</span>
-              <button className="text-indigo-300 font-bold hover:text-indigo-300 flex items-center space-x-1">
+            <div className="pt-2 border-t border-line flex items-center justify-between text-xs">
+              <span className="text-ink-subtle font-medium">Live Campaign Dispatch</span>
+              <button className="text-indigo-700 dark:text-indigo-300 font-bold hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center space-x-1">
                 <span>Inspect 3D Data</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </button>

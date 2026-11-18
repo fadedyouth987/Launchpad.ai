@@ -44,7 +44,7 @@ export const TeamInvites: React.FC<{ workspaceId: string; canInvite: boolean }> 
   }, [load]);
 
   if (!canInvite) {
-    return <p className="text-sm text-slate-300">Only the workspace owner and admins can invite people.</p>;
+    return <p className="text-sm text-ink-muted">Only the workspace owner and admins can invite people.</p>;
   }
 
   const send = async (e: React.FormEvent) => {
@@ -81,7 +81,9 @@ export const TeamInvites: React.FC<{ workspaceId: string; canInvite: boolean }> 
         <p
           data-testid="seat-usage"
           className={`text-sm rounded-xl px-3 py-2 border ${
-            full ? 'bg-amber-950/40 border-amber-800/60 text-amber-200' : 'bg-slate-950 border-slate-800 text-slate-300'
+            full
+              ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-200'
+              : 'bg-canvas border-line text-ink-muted'
           }`}
         >
           {seats.limit === null ? (
@@ -103,7 +105,7 @@ export const TeamInvites: React.FC<{ workspaceId: string; canInvite: boolean }> 
       )}
       <form onSubmit={send} className="flex flex-wrap items-end gap-3">
         <div className="min-w-[16rem] flex-1">
-          <label htmlFor="invite-email" className="block text-sm font-semibold text-slate-200">
+          <label htmlFor="invite-email" className="block text-sm font-semibold text-ink">
             Email address
           </label>
           <input
@@ -113,18 +115,18 @@ export const TeamInvites: React.FC<{ workspaceId: string; canInvite: boolean }> 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="teammate@company.com"
-            className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500"
+            className="mt-1 w-full rounded-xl border border-line-strong bg-canvas px-3 py-2 text-sm text-ink outline-none focus:border-indigo-500"
           />
         </div>
         <div>
-          <label htmlFor="invite-role" className="block text-sm font-semibold text-slate-200">
+          <label htmlFor="invite-role" className="block text-sm font-semibold text-ink">
             Role
           </label>
           <select
             id="invite-role"
             value={role}
             onChange={(e) => setRole(e.target.value as Exclude<WorkspaceRole, 'owner'>)}
-            className="mt-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+            className="mt-1 rounded-xl border border-line-strong bg-canvas px-3 py-2 text-sm text-ink"
           >
             <option value="admin">Admin</option>
             <option value="approver">Approver</option>
@@ -141,26 +143,26 @@ export const TeamInvites: React.FC<{ workspaceId: string; canInvite: boolean }> 
           {busy ? 'Inviting…' : emailEnabled ? 'Send invitation' : 'Create invite link'}
         </button>
       </form>
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-ink-subtle">
         {emailEnabled
           ? 'Invitations are emailed (Resend) and expire after 7 days. The person must sign in with the invited email.'
-          : 'Email is not connected (RESEND_API_KEY and EMAIL_FROM): you get a link to send yourself. It expires after 7 days and only works for the invited email.'}
+          : 'Invitation emails aren’t set up on this server, so you get a link to send yourself. It expires after 7 days and only works for the invited email.'}
       </p>
       {msg && (
         <div
           role="status"
-          className={`rounded-xl p-3 text-sm ${msg.ok ? 'bg-emerald-950 text-emerald-200' : 'bg-rose-950 text-rose-200'}`}
+          className={`rounded-xl p-3 text-sm ${msg.ok ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200' : 'bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-200'}`}
         >
           <p className="font-semibold">{msg.text}</p>
           {msg.link && (
             <div className="mt-2 flex items-center gap-2">
-              <code className="flex-1 break-all rounded bg-slate-950 p-2 text-xs" data-testid="invite-link">
+              <code className="flex-1 break-all rounded bg-canvas p-2 text-xs" data-testid="invite-link">
                 {msg.link}
               </code>
               <button
                 type="button"
                 onClick={() => navigator.clipboard.writeText(msg.link!)}
-                className="inline-flex items-center gap-1 rounded-lg bg-slate-800 px-3 py-2 text-xs font-bold"
+                className="inline-flex items-center gap-1 rounded-lg bg-surface-muted px-3 py-2 text-xs font-bold"
               >
                 <Copy className="h-3.5 w-3.5" /> Copy
               </button>
@@ -169,16 +171,16 @@ export const TeamInvites: React.FC<{ workspaceId: string; canInvite: boolean }> 
         </div>
       )}
       {invites.length > 0 && (
-        <ul className="divide-y divide-slate-800 rounded-xl border border-slate-800">
+        <ul className="divide-y divide-line rounded-xl border border-line">
           {invites.map((i) => (
-            <li key={i.id} className="flex items-center justify-between gap-3 p-3 text-sm text-slate-200">
+            <li key={i.id} className="flex items-center justify-between gap-3 p-3 text-sm text-ink">
               <span>
                 {i.email} · {i.role} · expires {new Date(i.expiresAt).toLocaleDateString()}
               </span>
               <button
                 type="button"
                 onClick={() => revoke(i.id)}
-                className="inline-flex items-center gap-1 rounded-lg bg-rose-900 px-3 py-1.5 text-xs font-bold text-white"
+                className="inline-flex items-center gap-1 rounded-lg bg-rose-100 dark:bg-rose-900 px-3 py-1.5 text-xs font-bold text-ink"
               >
                 <Trash2 className="h-3.5 w-3.5" /> Revoke
               </button>

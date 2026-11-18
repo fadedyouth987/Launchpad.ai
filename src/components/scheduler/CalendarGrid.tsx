@@ -20,9 +20,9 @@ export function CalendarGrid({ s }: { s: SocialSchedulerState }) {
   return (
     <>
       {/* MONTHLY DRAG & DROP CALENDAR GRID */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+      <div className="bg-surface border border-line rounded-2xl overflow-hidden shadow-2xl">
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 border-b border-slate-800 bg-slate-950 text-center text-xs font-bold text-slate-400 py-3">
+        <div className="grid grid-cols-7 border-b border-line bg-canvas text-center text-xs font-bold text-ink-subtle py-3">
           {daysOfWeek.map((day) => (
             <div key={day} className="uppercase tracking-wider">
               {day}
@@ -31,7 +31,7 @@ export function CalendarGrid({ s }: { s: SocialSchedulerState }) {
         </div>
 
         {/* Month Day Cells */}
-        <div className="grid grid-cols-7 divide-x divide-y divide-slate-800/80 bg-slate-950">
+        <div className="grid grid-cols-7 divide-x divide-y divide-line/80 bg-canvas">
           {monthGridDays.map((dayObj, idx) => {
             const { dateStr, dayNum, isCurrentMonth } = dayObj;
             const dayPosts = assetsByDate[dateStr] || [];
@@ -45,8 +45,8 @@ export function CalendarGrid({ s }: { s: SocialSchedulerState }) {
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, dateStr)}
                 className={`min-h-[140px] p-2 transition-all flex flex-col justify-between group relative ${
-                  !isCurrentMonth ? 'bg-slate-950 opacity-60' : 'bg-slate-900 hover:bg-slate-900'
-                } ${isDragTarget ? 'ring-2 ring-indigo-500 bg-indigo-950/40' : ''}`}
+                  !isCurrentMonth ? 'bg-canvas opacity-60' : 'bg-surface hover:bg-surface'
+                } ${isDragTarget ? 'ring-2 ring-indigo-500 bg-indigo-50 dark:bg-indigo-950/40' : ''}`}
               >
                 {/* Cell Header: Date Number + Quick Add Button */}
                 <div className="flex items-center justify-between text-xs mb-2">
@@ -55,8 +55,8 @@ export function CalendarGrid({ s }: { s: SocialSchedulerState }) {
                       isToday
                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/40 ring-2 ring-indigo-400'
                         : isCurrentMonth
-                          ? 'text-slate-300'
-                          : 'text-slate-300'
+                          ? 'text-ink-muted'
+                          : 'text-ink-muted'
                     }`}
                   >
                     {dayNum}
@@ -64,7 +64,7 @@ export function CalendarGrid({ s }: { s: SocialSchedulerState }) {
 
                   <button
                     onClick={() => handleOpenScheduleModalForDate(dateStr)}
-                    className="p-1 hover:bg-slate-800 text-slate-300 hover:text-indigo-300 rounded transition-all"
+                    className="p-1 hover:bg-surface-muted text-ink-muted hover:text-indigo-700 dark:hover:text-indigo-300 rounded transition-all"
                     title={`Schedule post for ${dateStr}`}
                     aria-label={`Add a post on ${dateStr}`}
                   >
@@ -88,7 +88,7 @@ export function CalendarGrid({ s }: { s: SocialSchedulerState }) {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-1 truncate">
-                            <GripVertical className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                            <GripVertical className="w-2.5 h-2.5 text-ink-subtle shrink-0" />
                             {renderPlatformIcon(post.platform)}
                             <span className="font-extrabold truncate">{post.title}</span>
                           </div>
@@ -96,25 +96,25 @@ export function CalendarGrid({ s }: { s: SocialSchedulerState }) {
                           <span
                             className={`text-2xs font-mono px-1.5 py-0.2 rounded font-bold shrink-0 ${
                               isPublished
-                                ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                                : 'bg-slate-900 text-indigo-300 border border-slate-800'
+                                ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                                : 'bg-surface text-indigo-700 dark:text-indigo-300 border border-line'
                             }`}
                           >
                             {isPublished ? 'Published' : '09:00 AM'}
                           </span>
                         </div>
 
-                        <p className="text-2xs text-slate-300 line-clamp-1 leading-snug font-medium">{post.caption}</p>
+                        <p className="text-2xs text-ink-muted line-clamp-1 leading-snug font-medium">{post.caption}</p>
 
                         {!isPublished && (
-                          <div className="flex items-center justify-between pt-1 border-t border-slate-800/60 text-2xs">
-                            <span className="text-slate-400">Drag to move</span>
+                          <div className="flex items-center justify-between pt-1 border-t border-line/60 text-2xs">
+                            <span className="text-ink-subtle">Drag to move</span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onPublishNow(post.id);
                               }}
-                              className="text-indigo-300 hover:text-white font-bold underline"
+                              className="text-indigo-700 dark:text-indigo-300 hover:text-ink font-bold underline"
                             >
                               Dispatch
                             </button>
@@ -128,7 +128,7 @@ export function CalendarGrid({ s }: { s: SocialSchedulerState }) {
                 {/* Drop indicator outline */}
                 {isDragTarget && (
                   <div className="absolute inset-0 bg-indigo-500/10 border-2 border-dashed border-indigo-400 rounded-xl pointer-events-none flex items-center justify-center">
-                    <span className="text-xs font-bold text-indigo-300 bg-slate-950 px-2 py-1 rounded border border-indigo-500">
+                    <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-canvas px-2 py-1 rounded border border-indigo-500">
                       Drop to Reschedule
                     </span>
                   </div>

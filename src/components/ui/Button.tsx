@@ -10,9 +10,10 @@ const VARIANTS: Record<Variant, string> = {
   ghost: 'text-ink-muted hover:bg-surface-muted hover:text-ink',
   danger: 'bg-rose-700 text-white hover:bg-rose-800 shadow-sm disabled:bg-rose-700/60',
 };
+// 44px tall on phones (the minimum comfortable touch target), compact from the sm breakpoint up.
 const SIZES: Record<Size, string> = {
-  sm: 'h-9 px-3 text-xs gap-1.5',
-  md: 'h-10 px-4 text-sm gap-2',
+  sm: 'h-11 sm:h-9 px-3 text-xs gap-1.5',
+  md: 'h-11 sm:h-10 px-4 text-sm gap-2',
 };
 
 export function buttonClass(variant: Variant = 'primary', size: Size = 'md', extra = ''): string {

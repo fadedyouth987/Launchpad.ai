@@ -388,7 +388,7 @@ export const AiSettings: React.FC<{ workspaceId: string }> = ({ workspaceId }) =
         </p>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {status.providers.map((p) => (
-            <article key={p.id} className="rounded-xl border border-line p-4" data-testid={`provider-${p.id}`}>
+            <article key={p.id} className="min-w-0 rounded-xl border border-line p-4" data-testid={`provider-${p.id}`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-base font-bold text-ink">{p.label}</h3>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${p.usable ? pill.ok : pill.off}`}>
@@ -396,16 +396,16 @@ export const AiSettings: React.FC<{ workspaceId: string }> = ({ workspaceId }) =
                 </span>
               </div>
               <p className="mt-1 text-sm text-ink-muted">{p.description}</p>
-              <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+              <dl className="mt-3 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
                 <dt className="font-semibold text-ink">Server key</dt>
-                <dd className="flex items-center gap-1 text-ink">
+                <dd className="flex min-w-0 flex-wrap items-center gap-1 text-ink">
                   {p.serverConfigured ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden />
                   ) : (
                     <CircleSlash className="h-4 w-4 text-ink-subtle" aria-hidden />
                   )}
                   {p.serverConfigured ? 'Set' : 'Not set'} ·{' '}
-                  <code className="text-xs">{[p.keyEnv, ...p.otherEnv].join(', ')}</code>
+                  <code className="break-all text-xs">{[p.keyEnv, ...p.otherEnv].join(', ')}</code>
                 </dd>
                 {p.allowWorkspaceKey && (
                   <>
@@ -418,7 +418,7 @@ export const AiSettings: React.FC<{ workspaceId: string }> = ({ workspaceId }) =
                   </>
                 )}
                 <dt className="font-semibold text-ink">Default model</dt>
-                <dd className="font-mono text-xs text-ink">
+                <dd className="min-w-0 break-words font-mono text-xs text-ink">
                   {p.defaultModel || '(set ' + p.modelEnv + ')'}{' '}
                   <span className="font-sans text-ink-subtle">· change with {p.modelEnv}</span>
                 </dd>
@@ -432,12 +432,13 @@ export const AiSettings: React.FC<{ workspaceId: string }> = ({ workspaceId }) =
                 <dd className="text-ink break-words">
                   {p.keyUrl.startsWith('https://') ? (
                     <a
-                      className="inline-flex items-center gap-1 font-semibold text-brand-700 underline dark:text-brand-300"
+                      className="break-all font-semibold text-brand-700 underline dark:text-brand-300"
                       href={p.keyUrl}
                       target="_blank"
                       rel="noreferrer noopener"
                     >
-                      {p.keyUrl.replace('https://', '')} <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                      {p.keyUrl.replace('https://', '')}{' '}
+                      <ExternalLink className="inline h-3.5 w-3.5 align-[-2px]" aria-hidden />
                     </a>
                   ) : (
                     p.keyUrl

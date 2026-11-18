@@ -73,16 +73,16 @@ export const ApiKeys: React.FC<{ workspaceId: string; canManage: boolean; signed
 
   const toggle = (s: Scope) => setScopes((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
   const input =
-    'mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500';
+    'mt-1 w-full rounded-xl border border-line-strong bg-canvas px-3 py-2 text-sm text-ink outline-none focus:border-indigo-500';
   const example = `curl -H "Authorization: Bearer lp_live_..." \\\n  ${apiBase}/api/workspaces/${workspaceId}/campaign-assets`;
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3">
-        <h3 className="text-base font-bold text-white flex items-center gap-2">
-          <KeyRound className="w-4 h-4 text-indigo-300" /> API keys
-        </h3>
-        <p className="text-sm text-slate-300">
+      <div className="bg-surface border border-line rounded-2xl p-6 space-y-3">
+        <h2 className="text-base font-bold text-ink flex items-center gap-2">
+          <KeyRound className="w-4 h-4 text-indigo-700 dark:text-indigo-300" /> API keys
+        </h2>
+        <p className="text-sm text-ink-muted">
           Let other apps (Zapier, Make, n8n, your own scripts) work with this workspace. A key only works for this
           workspace, follows the same credit and approval rules as people, and everything it does is in the audit log
           under its name. Keep keys secret: never put them in a website or a public repository.
@@ -92,52 +92,60 @@ export const ApiKeys: React.FC<{ workspaceId: string; canManage: boolean; signed
             href={`${apiBase}/api/v1/openapi.json`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200 font-semibold"
+            className="inline-flex items-center gap-1 text-indigo-700 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-200 font-semibold"
           >
             API description (OpenAPI) <ExternalLink className="w-3 h-3" />
           </a>
-          <span className="text-slate-500">Import it into Postman, Insomnia, Make or Zapier.</span>
+          <span className="text-ink-subtle">Import it into Postman, Insomnia, Make or Zapier.</span>
         </div>
-        <pre className="text-xs bg-slate-950 border border-slate-800 rounded-xl p-3 overflow-x-auto text-slate-300">
+        <pre className="text-xs bg-canvas border border-line rounded-xl p-3 overflow-x-auto text-ink-muted">
           {example}
         </pre>
       </div>
 
       {!signedIn ? (
-        <p className="text-sm text-slate-300">API keys need a signed-in account (not available in the demo).</p>
+        <p className="text-sm text-ink-muted">API keys need a signed-in account (not available in the demo).</p>
       ) : !canManage ? (
-        <p className="text-sm text-slate-300">Only the workspace owner and admins can manage API keys.</p>
+        <p className="text-sm text-ink-muted">Only the workspace owner and admins can manage API keys.</p>
       ) : (
         <>
           {newKey && (
-            <div role="status" className="rounded-2xl bg-emerald-950 border border-emerald-800 p-4 space-y-2">
-              <p className="text-sm font-bold text-emerald-200">Copy your new key now. It will not be shown again.</p>
+            <div
+              role="status"
+              className="rounded-2xl bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 p-4 space-y-2"
+            >
+              <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
+                Copy your new key now. It will not be shown again.
+              </p>
               <div className="flex items-center gap-2">
                 <code
-                  className="flex-1 break-all rounded bg-slate-950 p-2 text-xs text-emerald-100"
+                  className="flex-1 break-all rounded bg-canvas p-2 text-xs text-emerald-800 dark:text-emerald-100"
                   data-testid="new-api-key"
                 >
                   {newKey}
                 </code>
                 <button
                   onClick={() => navigator.clipboard?.writeText(newKey)}
-                  className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200"
+                  className="p-2 rounded-lg bg-surface-muted hover:bg-line-strong text-ink"
                   aria-label="Copy key"
                 >
                   <Copy className="w-4 h-4" />
                 </button>
               </div>
-              <button onClick={() => setNewKey(null)} className="text-xs text-emerald-300 hover:text-emerald-200">
+              <button
+                onClick={() => setNewKey(null)}
+                className="text-xs text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200"
+              >
                 I&apos;ve saved it
               </button>
             </div>
           )}
 
-          <form onSubmit={create} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-            <h4 className="text-sm font-bold text-white">Create a key</h4>
+          <form onSubmit={create} className="bg-surface border border-line rounded-2xl p-6 space-y-4">
+            <h3 className="text-sm font-bold text-ink">Create a key</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="key-name" className="block text-sm font-semibold text-slate-200">
+                <label htmlFor="key-name" className="block text-sm font-semibold text-ink">
                   Name
                 </label>
                 <input
@@ -151,7 +159,7 @@ export const ApiKeys: React.FC<{ workspaceId: string; canManage: boolean; signed
                 />
               </div>
               <div>
-                <label htmlFor="key-expiry" className="block text-sm font-semibold text-slate-200">
+                <label htmlFor="key-expiry" className="block text-sm font-semibold text-ink">
                   Expires
                 </label>
                 <select id="key-expiry" value={expires} onChange={(e) => setExpires(e.target.value)} className={input}>
@@ -163,18 +171,18 @@ export const ApiKeys: React.FC<{ workspaceId: string; canManage: boolean; signed
               </div>
             </div>
             <fieldset className="space-y-2">
-              <legend className="text-sm font-semibold text-slate-200">Permissions</legend>
+              <legend className="text-sm font-semibold text-ink">Permissions</legend>
               {(Object.keys(SCOPE_INFO) as Scope[]).map((s) => (
-                <label key={s} className="flex items-start gap-2 text-sm text-slate-300">
+                <label key={s} className="flex items-start gap-2 text-sm text-ink-muted">
                   <input type="checkbox" checked={scopes.includes(s)} onChange={() => toggle(s)} className="mt-1" />
                   <span>
-                    <strong className="text-slate-100">{SCOPE_INFO[s].label}</strong>: {SCOPE_INFO[s].detail}
+                    <strong className="text-ink">{SCOPE_INFO[s].label}</strong>: {SCOPE_INFO[s].detail}
                   </span>
                 </label>
               ))}
             </fieldset>
             {error && (
-              <p role="alert" className="text-sm font-semibold text-rose-300">
+              <p role="alert" className="text-sm font-semibold text-rose-700 dark:text-rose-300">
                 {error}
               </p>
             )}
@@ -187,19 +195,19 @@ export const ApiKeys: React.FC<{ workspaceId: string; canManage: boolean; signed
             </button>
           </form>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3">
-            <h4 className="text-sm font-bold text-white">Active keys ({keys.length})</h4>
+          <div className="bg-surface border border-line rounded-2xl p-6 space-y-3">
+            <h3 className="text-sm font-bold text-ink">Active keys ({keys.length})</h3>
             {keys.length === 0 ? (
-              <p className="text-sm text-slate-400">No keys yet.</p>
+              <p className="text-sm text-ink-subtle">No keys yet.</p>
             ) : (
-              <ul className="divide-y divide-slate-800">
+              <ul className="divide-y divide-line">
                 {keys.map((k) => (
                   <li key={k.id} className="py-3 flex items-center justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-100">
-                        {k.name} <code className="text-xs text-slate-400">{k.prefix}…</code>
+                      <p className="text-sm font-semibold text-ink">
+                        {k.name} <code className="text-xs text-ink-subtle">{k.prefix}…</code>
                       </p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-ink-subtle">
                         {k.scopes.map((s) => SCOPE_INFO[s].label).join(', ')} · created{' '}
                         {new Date(k.createdAt).toLocaleDateString()} ·{' '}
                         {k.lastUsedAt ? `last used ${new Date(k.lastUsedAt).toLocaleString()}` : 'never used'}
@@ -208,7 +216,7 @@ export const ApiKeys: React.FC<{ workspaceId: string; canManage: boolean; signed
                     </div>
                     <button
                       onClick={() => revoke(k)}
-                      className="p-2 rounded-lg bg-slate-800 hover:bg-rose-900 text-slate-300 shrink-0"
+                      className="p-2 rounded-lg bg-surface-muted hover:bg-rose-100 dark:hover:bg-rose-900 text-ink-muted shrink-0"
                       aria-label={`Revoke ${k.name}`}
                       title="Revoke"
                     >

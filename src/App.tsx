@@ -15,7 +15,7 @@ export default function App() {
               fallback={
                 <div
                   role="status"
-                  className="min-h-screen grid place-items-center text-sm font-semibold text-slate-500"
+                  className="min-h-screen grid place-items-center text-sm font-semibold text-ink-subtle"
                 >
                   Loading workspace…
                 </div>

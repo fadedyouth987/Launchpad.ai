@@ -26,10 +26,10 @@ const CustomChartTooltip = ({ active, payload, isLight }: any) => {
       className={`p-3.5 rounded-2xl border shadow-xl text-xs space-y-2 backdrop-blur-md max-w-xs ${
         isLight
           ? 'bg-white/95 border-slate-200 text-slate-800 shadow-slate-200'
-          : 'bg-slate-900 border-slate-700 text-slate-100 shadow-slate-950'
+          : 'bg-surface border-line-strong text-ink shadow-slate-950'
       }`}
     >
-      <div className="flex items-center justify-between border-b pb-2 border-slate-700/50">
+      <div className="flex items-center justify-between border-b pb-2 border-line-strong/50">
         <div className="flex items-center space-x-1.5">
           <Calendar className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
           <span className="font-bold">
@@ -77,17 +77,17 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
       {/* Recharts Credit Consumption Trend Section */}
       <div
         className={`border rounded-2xl p-6 space-y-6 ${
-          isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900 border-slate-800'
+          isLight ? 'bg-white border-slate-200 shadow-md' : 'bg-surface border-line'
         }`}
       >
         {/* Controls Bar & Section Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b pb-4 border-slate-800">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b pb-4 border-line">
           <div>
             <div className="flex items-center space-x-2">
               <BarChart2 className="w-5 h-5 text-amber-700 dark:text-amber-400" />
-              <h3 className={`text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>Credit usage</h3>
+              <h2 className={`text-base font-bold ${isLight ? 'text-slate-900' : 'text-ink'}`}>Credit usage</h2>
             </div>
-            <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+            <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-600' : 'text-ink-subtle'}`}>
               Daily credits spent (net of refunds), credits added, and the resulting balance, from this workspace&apos;s
               ledger (latest 50 entries).
             </p>
@@ -97,7 +97,7 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
             {/* View Mode Toggle */}
             <div
               className={`p-1 rounded-xl border flex items-center space-x-1 text-xs font-semibold ${
-                isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'
+                isLight ? 'bg-slate-100 border-slate-200' : 'bg-canvas border-line'
               }`}
             >
               <button
@@ -107,7 +107,7 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
                     ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
                     : isLight
                       ? 'text-slate-600 hover:text-slate-900'
-                      : 'text-slate-400 hover:text-white'
+                      : 'text-ink-subtle hover:text-ink'
                 }`}
               >
                 Burn & Balance
@@ -119,7 +119,7 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
                     ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
                     : isLight
                       ? 'text-slate-600 hover:text-slate-900'
-                      : 'text-slate-400 hover:text-white'
+                      : 'text-ink-subtle hover:text-ink'
                 }`}
               >
                 Daily Usage
@@ -129,7 +129,7 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
             {/* Time Frame Selector */}
             <div
               className={`p-1 rounded-xl border flex items-center space-x-1 text-xs font-semibold ${
-                isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'
+                isLight ? 'bg-slate-100 border-slate-200' : 'bg-canvas border-line'
               }`}
             >
               <button
@@ -138,10 +138,10 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
                   timeRange === '7'
                     ? isLight
                       ? 'bg-white text-slate-900 shadow-sm font-bold'
-                      : 'bg-slate-800 text-white shadow-sm font-bold'
+                      : 'bg-surface-muted text-ink shadow-sm font-bold'
                     : isLight
                       ? 'text-slate-600'
-                      : 'text-slate-400'
+                      : 'text-ink-subtle'
                 }`}
               >
                 7 Days
@@ -152,10 +152,10 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
                   timeRange === '14'
                     ? isLight
                       ? 'bg-white text-slate-900 shadow-sm font-bold'
-                      : 'bg-slate-800 text-white shadow-sm font-bold'
+                      : 'bg-surface-muted text-ink shadow-sm font-bold'
                     : isLight
                       ? 'text-slate-600'
-                      : 'text-slate-400'
+                      : 'text-ink-subtle'
                 }`}
               >
                 14 Days
@@ -166,10 +166,10 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
                   timeRange === '30'
                     ? isLight
                       ? 'bg-white text-slate-900 shadow-sm font-bold'
-                      : 'bg-slate-800 text-white shadow-sm font-bold'
+                      : 'bg-surface-muted text-ink shadow-sm font-bold'
                     : isLight
                       ? 'text-slate-600'
-                      : 'text-slate-400'
+                      : 'text-ink-subtle'
                 }`}
               >
                 30 Days
@@ -182,7 +182,7 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div
             className={`p-3.5 rounded-xl border ${
-              isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800/80'
+              isLight ? 'bg-slate-50 border-slate-200' : 'bg-canvas border-line/80'
             }`}
           >
             <span className="text-2xs text-ink-subtle block mb-1">Window Consumption ({timeRange}d)</span>
@@ -194,13 +194,13 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
 
           <div
             className={`p-3.5 rounded-xl border ${
-              isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800/80'
+              isLight ? 'bg-slate-50 border-slate-200' : 'bg-canvas border-line/80'
             }`}
           >
             <span className="text-2xs text-ink-subtle block mb-1">Avg Daily Burn Rate</span>
             <div
               className={`flex items-baseline space-x-1.5 font-mono font-bold text-lg ${
-                isLight ? 'text-slate-800' : 'text-white'
+                isLight ? 'text-slate-800' : 'text-ink'
               }`}
             >
               <span>{kpis.avgDailyBurn}</span>
@@ -210,7 +210,7 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
 
           <div
             className={`p-3.5 rounded-xl border ${
-              isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800/80'
+              isLight ? 'bg-slate-50 border-slate-200' : 'bg-canvas border-line/80'
             }`}
           >
             <span className="text-2xs text-ink-subtle block mb-1">Peak Consumption Day</span>
@@ -222,7 +222,7 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
 
           <div
             className={`p-3.5 rounded-xl border ${
-              isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800/80'
+              isLight ? 'bg-slate-50 border-slate-200' : 'bg-canvas border-line/80'
             }`}
           >
             <span className="text-2xs text-ink-subtle block mb-1">Projected Credit Runway</span>
@@ -280,7 +280,7 @@ export function CreditTrendChart({ s }: { s: BillingLedgerState }) {
                 <Legend
                   wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
                   formatter={(value) => (
-                    <span className={isLight ? 'text-slate-700 font-medium' : 'text-slate-300 font-medium'}>
+                    <span className={isLight ? 'text-slate-700 font-medium' : 'text-ink-muted font-medium'}>
                       {value}
                     </span>
                   )}

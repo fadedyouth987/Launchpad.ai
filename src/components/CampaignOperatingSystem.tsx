@@ -493,12 +493,12 @@ export function CampaignOperatingSystem({ workspaceId }: { workspaceId: string }
                         : 'Saved to this workspace.'}
             </p>
           </div>
-          <div className="flex min-w-0 shrink-0 gap-2">
+          <div className="flex min-w-0 flex-wrap gap-2">
             <select
               aria-label="Active campaign"
               value={activeCampaignId}
               onChange={(e) => setActiveCampaignId(e.target.value)}
-              className="w-56 truncate rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold dark:border-slate-700 dark:bg-slate-950"
+              className="w-full min-w-0 truncate sm:w-56 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold dark:border-slate-700 dark:bg-slate-950"
             >
               {state.campaigns.map((c) => (
                 <option value={c.id} key={c.id}>
@@ -520,7 +520,7 @@ export function CampaignOperatingSystem({ workspaceId }: { workspaceId: string }
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-extrabold ${tab === id ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}
+              className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-extrabold ${tab === id ? 'bg-surface text-ink dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}
             >
               <Icon className="h-4 w-4" />
               {label}
@@ -582,8 +582,8 @@ export function CampaignOperatingSystem({ workspaceId }: { workspaceId: string }
 
       {tab === 'workflow' && campaign && (
         <div className="grid gap-5 xl:grid-cols-[1fr_320px]">
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3 text-white">
+          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-canvas shadow-sm">
+            <div className="flex items-center justify-between border-b border-line px-4 py-3 text-ink">
               <div>
                 <div className="text-sm font-black">{campaign.name}</div>
                 <div className="text-2xs text-ink-subtle">Drag steps, edit details, then mark each step done.</div>
@@ -629,12 +629,12 @@ export function CampaignOperatingSystem({ workspaceId }: { workspaceId: string }
                   }}
                   onClick={() => setSelectedNode(n.id)}
                   style={{ left: n.x, top: n.y }}
-                  className={`absolute w-[210px] cursor-grab rounded-2xl border bg-slate-900 p-3 text-white shadow-xl ${selectedNode === n.id ? 'border-indigo-400 ring-2 ring-indigo-500/30' : 'border-slate-700'}`}
+                  className={`absolute w-[210px] cursor-grab rounded-2xl border bg-surface p-3 text-ink shadow-xl ${selectedNode === n.id ? 'border-indigo-400 ring-2 ring-indigo-500/30' : 'border-line-strong'}`}
                 >
                   <div className="flex items-center justify-between">
                     <GripVertical className="h-4 w-4 text-ink-subtle" />
                     <span
-                      className={`rounded-full px-2 py-0.5 text-2xs font-black uppercase ${n.status === 'complete' ? 'bg-emerald-500/20 text-emerald-300' : n.status === 'running' ? 'bg-amber-500/20 text-amber-300' : n.status === 'blocked' ? 'bg-rose-500/20 text-rose-300' : 'bg-indigo-500/20 text-indigo-300'}`}
+                      className={`rounded-full px-2 py-0.5 text-2xs font-black uppercase ${n.status === 'complete' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : n.status === 'running' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300' : n.status === 'blocked' ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300' : 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'}`}
                     >
                       {n.status}
                     </span>
@@ -861,7 +861,7 @@ export function CampaignOperatingSystem({ workspaceId }: { workspaceId: string }
                   {p.published ? 'Ready · undo' : 'Mark ready'}
                 </button>
               </div>
-              <div className="mt-4 rounded-2xl bg-slate-950 p-6 text-white">
+              <div className="mt-4 rounded-2xl bg-canvas p-6 text-ink">
                 <div className="text-2xl font-black">{p.headline}</div>
                 <p className="mt-2 text-sm text-ink-subtle">{p.subheadline}</p>
                 <button className="mt-4 rounded-lg bg-white px-4 py-2 text-xs font-black text-slate-900">

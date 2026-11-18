@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Lightbulb, X } from 'lucide-react';
 import type { NavItem, PageAction, Requirement } from '../../navigation';
 import type { Health } from '../../hooks/useHealth';
@@ -9,7 +9,7 @@ const REQUIREMENT_TEXT: Record<Requirement, { title: string; message: string; co
   ai: {
     title: 'AI is not connected',
     message:
-      'Generation returns clearly labelled sample output and no credits are charged. Pick a provider in Settings > AI Providers: the server needs a key such as ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY or XAI_API_KEY, or an owner can save a workspace key.',
+      'Generation returns clearly labelled sample output and no credits are charged. An owner or admin can connect a provider in Settings > AI Providers.',
     connected: (h) => h.integrations.ai,
   },
   payments: {
@@ -36,6 +36,8 @@ interface PageHeaderProps {
 
 /** The same header on every page: section, title, one-line description, actions, notices, tip. */
 export function PageHeader({ item, sectionTitle, health, onAction, hintDismissed, onDismissHint }: PageHeaderProps) {
+  const [tipOpen, setTipOpen] = useState(false);
+  useEffect(() => setTipOpen(false), [item.id]);
   const missing = health ? (item.requires || []).filter((r) => !REQUIREMENT_TEXT[r].connected(health)) : [];
   return (
     <div className="space-y-4">
@@ -82,10 +84,22 @@ export function PageHeader({ item, sectionTitle, health, onAction, hintDismissed
           className="flex items-start gap-3 rounded-card border border-brand-200 bg-brand-50 p-4 text-brand-900 dark:border-brand-800 dark:bg-brand-900/30 dark:text-brand-100"
         >
           <Lightbulb className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-          <p className="flex-1 text-sm">
+          {/* Phones: one line until opened, so the page itself is on the first screen. Wider: always shown. */}
+          <p className={`flex-1 text-sm ${tipOpen ? '' : 'hidden sm:block'}`} id={`hint-${item.id}`}>
             <span className="font-bold">Tip: </span>
             {item.hint}
           </p>
+          {!tipOpen && (
+            <button
+              type="button"
+              onClick={() => setTipOpen(true)}
+              aria-expanded={false}
+              aria-controls={`hint-${item.id}`}
+              className="flex-1 text-left text-sm font-bold sm:hidden"
+            >
+              Tip for this page <span className="font-normal underline">Show</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={onDismissHint}

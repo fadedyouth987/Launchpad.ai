@@ -85,6 +85,19 @@
     outline: 2px solid var(--color-focus) !important;
     outline-offset: 2px !important;
   }
+  /* Touch screens: every control is at least 44x44px (WCAG 2.5.8 / platform guidance). Mouse layouts are
+     unchanged. Text links inside sentences are not affected. */
+  @media (pointer: coarse) {
+    button,
+    select,
+    textarea,
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='hidden']) {
+      min-height: 44px;
+    }
+    button {
+      min-width: 44px;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

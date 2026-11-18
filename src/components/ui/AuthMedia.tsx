@@ -39,20 +39,20 @@ export function AuthMedia({
       if (url) URL.revokeObjectURL(url);
     };
   }, [path, requested]);
-  if (failed) return <p className="text-sm text-rose-300">Could not load the {kind}.</p>;
+  if (failed) return <p className="text-sm text-rose-700 dark:text-rose-300">Could not load the {kind}.</p>;
   if (!requested)
     return (
       <button
         type="button"
         onClick={() => setRequested(true)}
-        className={`flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-semibold text-slate-200 h-24 ${className}`}
+        className={`flex items-center justify-center rounded-xl bg-surface-muted hover:bg-line-strong text-sm font-semibold text-ink h-24 ${className}`}
       >
         ▶ Load video
       </button>
     );
   if (!src)
     return (
-      <div role="status" className={`animate-pulse rounded-xl bg-slate-800 h-10 ${className}`}>
+      <div role="status" className={`animate-pulse rounded-xl bg-surface-muted h-10 ${className}`}>
         <span className="sr-only">Loading {kind}…</span>
       </div>
     );
@@ -65,7 +65,11 @@ export function AuthMedia({
         <audio src={src} controls autoPlay={autoPlay} className={className} />
       )}
       {downloadName && (
-        <a href={src} download={downloadName} className="text-2xs text-indigo-300 hover:text-indigo-200">
+        <a
+          href={src}
+          download={downloadName}
+          className="text-2xs text-indigo-700 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-200"
+        >
           Download
         </a>
       )}

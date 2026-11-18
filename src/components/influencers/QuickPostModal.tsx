@@ -24,18 +24,20 @@ export function QuickPostModal({ s }: { s: InfluencerStudioState }) {
       label="Generate a post"
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4"
     >
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="bg-surface border border-line rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-line pb-3">
           <div className="flex items-center space-x-2">
             <SafeImg src={selectedInfluencerForPublish.avatarUrl} alt="" className="w-8 h-8 rounded-lg object-cover" />
             <div>
-              <h3 className="text-sm font-bold text-white">Generate Post with {selectedInfluencerForPublish.name}</h3>
-              <p className="text-2xs text-indigo-300 font-mono">{selectedInfluencerForPublish.handle}</p>
+              <h2 className="text-sm font-bold text-ink">Generate Post with {selectedInfluencerForPublish.name}</h2>
+              <p className="text-2xs text-indigo-700 dark:text-indigo-300 font-mono">
+                {selectedInfluencerForPublish.handle}
+              </p>
             </div>
           </div>
           <button
             onClick={() => setShowQuickPublishModal(false)}
-            className="text-slate-400 hover:text-white text-lg font-bold"
+            className="text-ink-subtle hover:text-ink text-lg font-bold"
           >
             ×
           </button>
@@ -43,12 +45,12 @@ export function QuickPostModal({ s }: { s: InfluencerStudioState }) {
 
         <div className="space-y-4 text-xs">
           <div>
-            <label className="text-slate-300 font-semibold block mb-1">Target Social Platform</label>
+            <label className="text-ink-muted font-semibold block mb-1">Target Social Platform</label>
             <select
               aria-label="Target Social Platform"
               value={quickPlatform}
               onChange={(e) => setQuickPlatform(e.target.value as Platform)}
-              className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2 outline-none focus:border-indigo-500 font-medium"
+              className="w-full bg-canvas border border-line text-ink rounded-xl px-3.5 py-2 outline-none focus:border-indigo-500 font-medium"
             >
               <option value="linkedin">LinkedIn Enterprise</option>
               <option value="instagram">Instagram Reel & Carousel</option>
@@ -58,25 +60,25 @@ export function QuickPostModal({ s }: { s: InfluencerStudioState }) {
           </div>
 
           <div>
-            <label className="text-slate-300 font-semibold block mb-1">Campaign Topic or Product Feature Prompt</label>
+            <label className="text-ink-muted font-semibold block mb-1">Campaign Topic or Product Feature Prompt</label>
             <textarea
               aria-label="Campaign Topic or Product Feature Prompt"
               rows={3}
               value={quickPostPrompt}
               onChange={(e) => setQuickPostPrompt(e.target.value)}
               placeholder="e.g. Discussing our new zero-trust API security release..."
-              className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 resize-none"
+              className="w-full bg-canvas border border-line text-ink rounded-xl p-3 outline-none focus:border-indigo-500 resize-none"
             />
           </div>
 
-          <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1 text-2xs text-slate-400">
-            <div className="flex items-center space-x-1.5 text-emerald-400 font-bold">
+          <div className="bg-canvas p-3 rounded-xl border border-line space-y-1 text-2xs text-ink-subtle">
+            <div className="flex items-center space-x-1.5 text-emerald-700 dark:text-emerald-400 font-bold">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Persona details saved with the post</span>
             </div>
             <p>
               The copy is written by this workspace&apos;s AI provider (see Settings &gt; AI Providers). Face seed{' '}
-              <strong className="text-slate-200">#{selectedInfluencerForPublish.seed}</strong> is stored for reference;
+              <strong className="text-ink">#{selectedInfluencerForPublish.seed}</strong> is stored for reference;
               face-consistent image rendering is not connected yet.
             </p>
           </div>
@@ -85,16 +87,16 @@ export function QuickPostModal({ s }: { s: InfluencerStudioState }) {
         {quickError && (
           <div
             data-testid="influencer-generate-error"
-            className="p-3 rounded-xl border border-rose-800 bg-rose-950/60 text-xs text-rose-200"
+            className="p-3 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 text-xs text-rose-800 dark:text-rose-200"
           >
             {quickError}
           </div>
         )}
 
-        <div className="flex justify-end space-x-2 pt-2 border-t border-slate-800">
+        <div className="flex justify-end space-x-2 pt-2 border-t border-line">
           <button
             onClick={() => setShowQuickPublishModal(false)}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-bold"
+            className="bg-surface-muted hover:bg-line-strong text-ink-muted px-4 py-2 rounded-xl text-xs font-bold"
           >
             Cancel
           </button>

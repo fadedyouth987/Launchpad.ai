@@ -171,13 +171,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     >
       <div
         className={`relative w-full max-w-md rounded-2xl border shadow-2xl overflow-hidden transition-all ${
-          isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
+          isLight ? 'bg-white border-slate-200' : 'bg-surface border-line'
         }`}
       >
         {/* Header Bar */}
         <div
           className={`p-6 border-b flex items-center justify-between ${
-            isLight ? 'border-slate-100 bg-slate-50/50' : 'border-slate-800 bg-slate-950'
+            isLight ? 'border-slate-100 bg-slate-50/50' : 'border-line bg-canvas'
           }`}
         >
           <div className="flex items-center space-x-3">
@@ -185,12 +185,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className={`text-base font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+              <h2 className={`text-base font-bold ${isLight ? 'text-slate-900' : 'text-ink'}`}>
                 {mode === 'signin' && 'Sign In to Workspace'}
                 {mode === 'signup' && 'Create Your Account'}
                 {mode === 'forgot' && 'Reset Password'}
-              </h3>
-              <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+              </h2>
+              <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-ink-subtle'}`}>
                 {mode === 'signin' && 'Enter your credentials to access content workflows.'}
                 {mode === 'signup' && 'Join thousands of creators automating short-form video.'}
                 {mode === 'forgot' && 'We will send a password reset link to your email.'}
@@ -202,7 +202,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             className={`p-1.5 rounded-lg transition-colors ${
               isLight
                 ? 'text-slate-600 hover:text-slate-600 hover:bg-slate-100'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                : 'text-ink-subtle hover:text-ink hover:bg-surface-muted'
             }`}
             aria-label="Close"
           >
@@ -214,7 +214,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {mode !== 'forgot' && (
           <div
             className={`grid grid-cols-2 p-1.5 mx-6 mt-6 rounded-xl border text-xs font-semibold ${
-              isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'
+              isLight ? 'bg-slate-100 border-slate-200' : 'bg-canvas border-line'
             }`}
           >
             <button
@@ -223,10 +223,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 mode === 'signin'
                   ? isLight
                     ? 'bg-white text-slate-900 shadow-sm font-bold'
-                    : 'bg-slate-800 text-white shadow-sm font-bold'
+                    : 'bg-surface-muted text-ink shadow-sm font-bold'
                   : isLight
                     ? 'text-slate-600 hover:text-slate-900'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-ink-subtle hover:text-ink'
               }`}
             >
               Sign In
@@ -237,10 +237,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 mode === 'signup'
                   ? isLight
                     ? 'bg-white text-slate-900 shadow-sm font-bold'
-                    : 'bg-slate-800 text-white shadow-sm font-bold'
+                    : 'bg-surface-muted text-ink shadow-sm font-bold'
                   : isLight
                     ? 'text-slate-600 hover:text-slate-900'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-ink-subtle hover:text-ink'
               }`}
             >
               Register Account
@@ -267,12 +267,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <form onSubmit={handleSubmit} className="space-y-3.5">
             {mode === 'signup' && (
               <div className="space-y-1">
-                <label className={`text-xs font-semibold block ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                <label className={`text-xs font-semibold block ${isLight ? 'text-slate-700' : 'text-ink-muted'}`}>
                   Full Name
                 </label>
                 <div className="relative">
                   <UserIcon
-                    className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-600' : 'text-slate-500'}`}
+                    className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-600' : 'text-ink-subtle'}`}
                   />
                   <input
                     type="text"
@@ -283,7 +283,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-xs transition-all outline-none ${
                       isLight
                         ? 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-indigo-500'
-                        : 'bg-slate-950 border-slate-800 text-white focus:border-indigo-500'
+                        : 'bg-canvas border-line text-ink focus:border-indigo-500'
                     }`}
                   />
                 </div>
@@ -291,11 +291,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             )}
 
             <div className="space-y-1">
-              <label className={`text-xs font-semibold block ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+              <label className={`text-xs font-semibold block ${isLight ? 'text-slate-700' : 'text-ink-muted'}`}>
                 Email Address
               </label>
               <div className="relative">
-                <Mail className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-600' : 'text-slate-500'}`} />
+                <Mail className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-600' : 'text-ink-subtle'}`} />
                 <input
                   type="email"
                   required
@@ -305,7 +305,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-xs transition-all outline-none ${
                     isLight
                       ? 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-indigo-500'
-                      : 'bg-slate-950 border-slate-800 text-white focus:border-indigo-500'
+                      : 'bg-canvas border-line text-ink focus:border-indigo-500'
                   }`}
                 />
               </div>
@@ -314,7 +314,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {mode !== 'forgot' && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className={`text-xs font-semibold block ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                  <label className={`text-xs font-semibold block ${isLight ? 'text-slate-700' : 'text-ink-muted'}`}>
                     Password
                   </label>
                   {mode === 'signin' && (
@@ -328,7 +328,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-600' : 'text-slate-500'}`} />
+                  <Lock className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-600' : 'text-ink-subtle'}`} />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
@@ -338,7 +338,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     className={`w-full pl-9 pr-10 py-2.5 rounded-xl border text-xs transition-all outline-none ${
                       isLight
                         ? 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-indigo-500'
-                        : 'bg-slate-950 border-slate-800 text-white focus:border-indigo-500'
+                        : 'bg-canvas border-line text-ink focus:border-indigo-500'
                     }`}
                   />
                   <button
@@ -347,7 +347,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     aria-pressed={showPassword}
                     title={showPassword ? 'Hide password' : 'Show password'}
-                    className={`absolute right-3 top-3 p-0.5 ${isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200'}`}
+                    className={`absolute right-3 top-3 p-0.5 ${isLight ? 'text-slate-600 hover:text-slate-900' : 'text-ink-subtle hover:text-ink'}`}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -358,12 +358,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {mode === 'signup' && (
               <>
                 <div className="space-y-1">
-                  <label className={`text-xs font-semibold block ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                  <label className={`text-xs font-semibold block ${isLight ? 'text-slate-700' : 'text-ink-muted'}`}>
                     Confirm Password
                   </label>
                   <div className="relative">
                     <Lock
-                      className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-600' : 'text-slate-500'}`}
+                      className={`w-4 h-4 absolute left-3 top-3 ${isLight ? 'text-slate-600' : 'text-ink-subtle'}`}
                     />
                     <input
                       type={showPassword ? 'text' : 'password'}
@@ -374,7 +374,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-xs transition-all outline-none ${
                         isLight
                           ? 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-indigo-500'
-                          : 'bg-slate-950 border-slate-800 text-white focus:border-indigo-500'
+                          : 'bg-canvas border-line text-ink focus:border-indigo-500'
                       }`}
                     />
                   </div>
@@ -409,7 +409,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             >
               {loading ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                  <RefreshCw className="w-4 h-4 animate-spin text-ink" />
                   <span>Processing Auth Request...</span>
                 </>
               ) : (
@@ -429,10 +429,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {mode !== 'forgot' && (
             <div className="space-y-3 pt-2">
               <div className="relative flex items-center justify-center">
-                <div className={`w-full border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}`} />
+                <div className={`w-full border-t ${isLight ? 'border-slate-200' : 'border-line'}`} />
                 <span
                   className={`absolute px-3 text-2xs uppercase font-bold tracking-wider ${
-                    isLight ? 'bg-white text-slate-600' : 'bg-slate-900 text-slate-500'
+                    isLight ? 'bg-white text-slate-600' : 'bg-surface text-ink-subtle'
                   }`}
                 >
                   Or continue with
@@ -446,7 +446,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 className={`w-full py-2.5 px-4 rounded-xl border font-bold text-xs flex items-center justify-center space-x-2.5 transition-all ${
                   isLight
                     ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
-                    : 'bg-slate-950 hover:bg-slate-800 border-slate-800 text-slate-200'
+                    : 'bg-canvas hover:bg-surface-muted border-line text-ink'
                 }`}
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">

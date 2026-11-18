@@ -50,7 +50,7 @@ export const AuthGate: React.FC<{ children: (session: Session, endDemo: () => vo
   if (serverMode === 'unreachable') {
     return (
       <CenteredCard title="Can't reach the server" testId="auth-unreachable">
-        <p className="text-sm text-slate-400">Check that the Launchpad server is running, then reload.</p>
+        <p className="text-sm text-ink-subtle">Check that the Launchpad server is running, then reload.</p>
       </CenteredCard>
     );
   }
@@ -62,23 +62,23 @@ export const AuthGate: React.FC<{ children: (session: Session, endDemo: () => vo
   return (
     <CenteredCard title="Sign in to Launchpad" testId="sign-in-gate">
       {serverMode === 'not-configured' ? (
-        <p className="text-sm text-amber-300" data-testid="auth-not-configured">
+        <p className="text-sm text-amber-700 dark:text-amber-300" data-testid="auth-not-configured">
           Server sign-in isn't configured yet. An administrator needs to set DATABASE_URL and the Neon Auth settings
           (run `neon deploy`), or DEMO_MODE=true for a local demo.
         </p>
       ) : (
         <>
-          <p className="text-sm text-slate-400">Sign in or create an account to open your workspaces.</p>
+          <p className="text-sm text-ink-subtle">Sign in or create an account to open your workspaces.</p>
           <div className="flex gap-2">
             <button
               onClick={() => setModal('signin')}
-              className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-bold"
+              className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold"
             >
               Sign in
             </button>
             <button
               onClick={() => setModal('signup')}
-              className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold"
+              className="flex-1 py-2.5 rounded-xl bg-surface-muted hover:bg-line-strong text-sm font-bold"
             >
               Create account
             </button>
@@ -86,8 +86,8 @@ export const AuthGate: React.FC<{ children: (session: Session, endDemo: () => vo
         </>
       )}
       {serverMode === 'demo-mode' && (
-        <div className="pt-3 border-t border-slate-800 space-y-2">
-          <p className="text-xs text-amber-300">
+        <div className="pt-3 border-t border-line space-y-2">
+          <p className="text-xs text-amber-700 dark:text-amber-300">
             Demo mode is on: you can explore shared sample workspaces without an account. Data resets when the server
             restarts.
           </p>
@@ -125,35 +125,37 @@ const ResetPasswordCard: React.FC<{ token: string }> = ({ token }) => {
     <CenteredCard title="Choose a new password" testId="reset-password">
       {state === 'done' ? (
         <>
-          <p className="text-sm text-emerald-300">Password updated. You can sign in with it now.</p>
+          <p className="text-sm text-emerald-700 dark:text-emerald-300">
+            Password updated. You can sign in with it now.
+          </p>
           <button
             onClick={finish}
-            className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-bold"
+            className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold"
           >
             Continue to sign in
           </button>
         </>
       ) : (
         <form onSubmit={submit} className="space-y-3">
-          <label className="block text-sm text-slate-300">
+          <label className="block text-sm text-ink-muted">
             New password
             <input
               type="password"
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-xl bg-surface border border-line-strong px-3 py-2 text-sm"
             />
           </label>
           {state !== 'idle' && state !== 'busy' && (
-            <p role="alert" className="text-sm text-amber-300">
+            <p role="alert" className="text-sm text-amber-700 dark:text-amber-300">
               {state}
             </p>
           )}
           <button
             type="submit"
             disabled={state === 'busy'}
-            className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-bold disabled:opacity-60"
+            className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold disabled:opacity-60"
           >
             {state === 'busy' ? 'Saving…' : 'Set new password'}
           </button>

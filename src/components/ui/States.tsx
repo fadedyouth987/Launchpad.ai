@@ -34,7 +34,7 @@ export function EmptyState({
       <span className="rounded-full bg-surface-muted p-3 text-ink-muted" aria-hidden="true">
         <Icon className="h-6 w-6" />
       </span>
-      <h3 className="text-base font-bold text-ink">{title}</h3>
+      <h2 className="text-base font-bold text-ink">{title}</h2>
       {description && <p className="max-w-md text-sm text-ink-muted">{description}</p>}
       {action}
     </div>

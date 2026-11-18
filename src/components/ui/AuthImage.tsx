@@ -23,6 +23,11 @@ export function AuthImage({ path, alt, className = '' }: { path: string; alt: st
     };
   }, [path]);
   if (failed) return <p className="text-sm text-rose-700">Could not load the image.</p>;
-  if (!src) return <div className={`animate-pulse rounded-xl bg-slate-800 ${className}`} aria-label="Loading image" />;
+  if (!src)
+    return (
+      <div role="status" className={`animate-pulse rounded-xl bg-surface-muted ${className}`}>
+        <span className="sr-only">Loading image…</span>
+      </div>
+    );
   return <img src={src} alt={alt} className={className} />;
 }

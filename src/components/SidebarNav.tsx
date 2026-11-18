@@ -39,6 +39,20 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   const [wsOpen, setWsOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const wsRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const [moreBelow, setMoreBelow] = useState(false);
+  const updateMoreBelow = () => {
+    const el = navRef.current;
+    if (el) setMoreBelow(el.scrollHeight - el.scrollTop - el.clientHeight > 8);
+  };
+  useEffect(() => {
+    updateMoreBelow();
+    const el = navRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(updateMoreBelow);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isCollapsed, isMobileOpen]);
   // In the mobile drawer the sidebar is always shown expanded.
   const collapsed = isCollapsed && !isMobileOpen;
 
@@ -205,60 +219,74 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         </div>
 
         {/* Sections */}
-        <nav aria-label="Main" className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-          {NAV_SECTIONS.map((section) => (
-            <div key={section.id} role="group" aria-labelledby={`nav-${section.id}`}>
-              <h2
-                id={`nav-${section.id}`}
-                className={`mb-1.5 px-2 text-2xs font-bold uppercase tracking-wider text-ink-subtle ${collapsed ? 'sr-only' : ''}`}
-              >
-                {section.title}
-              </h2>
-              <ul className="space-y-0.5">
-                {section.items.map((item) => {
-                  const active = item.id === activeTab;
-                  const Icon = item.icon;
-                  return (
-                    <li key={item.id}>
-                      <a
-                        href={`#/${item.id}`}
-                        onClick={go(item.id)}
-                        aria-current={active ? 'page' : undefined}
-                        aria-label={collapsed ? item.label : undefined}
-                        title={collapsed ? item.label : undefined}
-                        data-nav={item.id}
-                        className={`relative flex items-center gap-3 rounded-control px-3 py-2 text-sm transition-colors ${
-                          collapsed ? 'justify-center' : ''
-                        } ${
-                          active
-                            ? 'bg-brand-50 font-bold text-brand-800 dark:bg-brand-900/50 dark:text-white'
-                            : 'font-medium text-ink-muted hover:bg-surface-muted hover:text-ink'
-                        }`}
-                      >
-                        {active && (
-                          <span
-                            className="absolute inset-y-1.5 left-0 w-1 rounded-r-full bg-brand-600"
+        {/* The fade at the bottom shows there are more pages below when the window is short. */}
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <nav
+            ref={navRef}
+            onScroll={updateMoreBelow}
+            aria-label="Main"
+            className="flex-1 space-y-5 overflow-y-auto px-3 py-4"
+          >
+            {NAV_SECTIONS.map((section) => (
+              <div key={section.id} role="group" aria-labelledby={`nav-${section.id}`}>
+                <h2
+                  id={`nav-${section.id}`}
+                  className={`mb-1.5 px-2 text-2xs font-bold uppercase tracking-wider text-ink-subtle ${collapsed ? 'sr-only' : ''}`}
+                >
+                  {section.title}
+                </h2>
+                <ul className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const active = item.id === activeTab;
+                    const Icon = item.icon;
+                    return (
+                      <li key={item.id}>
+                        <a
+                          href={`#/${item.id}`}
+                          onClick={go(item.id)}
+                          aria-current={active ? 'page' : undefined}
+                          aria-label={collapsed ? item.label : undefined}
+                          title={collapsed ? item.label : undefined}
+                          data-nav={item.id}
+                          className={`relative flex items-center gap-3 rounded-control px-3 py-2 text-sm transition-colors ${
+                            collapsed ? 'justify-center' : ''
+                          } ${
+                            active
+                              ? 'bg-brand-50 font-bold text-brand-800 dark:bg-brand-900/50 dark:text-white'
+                              : 'font-medium text-ink-muted hover:bg-surface-muted hover:text-ink'
+                          }`}
+                        >
+                          {active && (
+                            <span
+                              className="absolute inset-y-1.5 left-0 w-1 rounded-r-full bg-brand-600"
+                              aria-hidden="true"
+                            />
+                          )}
+                          <Icon
+                            className={`h-[18px] w-[18px] shrink-0 ${active ? 'text-brand-600 dark:text-brand-300' : ''}`}
                             aria-hidden="true"
                           />
-                        )}
-                        <Icon
-                          className={`h-[18px] w-[18px] shrink-0 ${active ? 'text-brand-600 dark:text-brand-300' : ''}`}
-                          aria-hidden="true"
-                        />
-                        {!collapsed && <span className="truncate">{item.label}</span>}
-                        {!collapsed && item.badge && (
-                          <span className="ml-auto rounded-full bg-brand-100 px-2 py-0.5 text-2xs font-bold text-brand-800">
-                            {item.badge}
-                          </span>
-                        )}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </nav>
+                          {!collapsed && <span className="truncate">{item.label}</span>}
+                          {!collapsed && item.badge && (
+                            <span className="ml-auto rounded-full bg-brand-100 px-2 py-0.5 text-2xs font-bold text-brand-800">
+                              {item.badge}
+                            </span>
+                          )}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </nav>
+          {moreBelow && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-surface to-transparent"
+            />
+          )}
+        </div>
 
         {/* Credits */}
         <div className="space-y-3 border-t border-line p-3">

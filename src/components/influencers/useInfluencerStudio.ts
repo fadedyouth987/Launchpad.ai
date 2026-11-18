@@ -51,7 +51,7 @@ export function useInfluencerStudio({
     'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80',
   );
 
-  // ComfyUI / IP-Adapter Technical Seed & LoRA Parameters
+  // Stored with each profile (part of the saved format); not used for generation.
   const [seed, setSeed] = useState<number>(482019382);
   const [faceConsistency, setFaceConsistency] = useState<number>(0.95);
   const [styleStrength, setStyleStrength] = useState<number>(0.85);

@@ -60,8 +60,8 @@ export const WorkspaceLoader: React.FC<Props> = ({ identityKey, children }) => {
   if (error && !workspaces?.length) {
     return (
       <CenteredCard title="Can't load workspaces" testId="workspace-error">
-        <p className="text-sm text-rose-300">{error}</p>
-        <button onClick={load} className="px-4 py-2 rounded-xl bg-slate-800 text-sm font-semibold">
+        <p className="text-sm text-rose-700 dark:text-rose-300">{error}</p>
+        <button onClick={load} className="px-4 py-2 rounded-xl bg-surface-muted text-sm font-semibold">
           Try again
         </button>
       </CenteredCard>
@@ -73,8 +73,8 @@ export const WorkspaceLoader: React.FC<Props> = ({ identityKey, children }) => {
   if (workspaces.length === 0) {
     return (
       <CenteredCard title="Create your first workspace" testId="workspace-create">
-        {inviteNote && <p className="text-sm font-semibold text-amber-300">{inviteNote}</p>}
-        <p className="text-sm text-slate-400">
+        {inviteNote && <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">{inviteNote}</p>}
+        <p className="text-sm text-ink-subtle">
           You're not a member of any workspace yet. Create one, or open an invitation link from a teammate.
         </p>
         <form onSubmit={create} className="space-y-3">
@@ -84,12 +84,12 @@ export const WorkspaceLoader: React.FC<Props> = ({ identityKey, children }) => {
             maxLength={100}
             placeholder="Workspace name"
             aria-label="Workspace name"
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500"
+            className="w-full bg-canvas border border-line rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500"
           />
           <button
             type="submit"
             disabled={creating || !name.trim()}
-            className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-sm font-bold"
+            className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-bold"
           >
             {creating ? 'Creating…' : 'Create workspace'}
           </button>

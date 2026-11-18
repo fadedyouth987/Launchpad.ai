@@ -106,15 +106,15 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
   return (
     <div className="space-y-8 w-full">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-6">
         <div>
           <p className="text-sm text-ink-muted">
             Approved posts scheduled for LinkedIn are published automatically at their scheduled time. Other networks
             are handed off through webhooks (Zapier, Make, Buffer).
           </p>
         </div>
-        <div className="flex items-center space-x-2 text-xs text-slate-400 bg-slate-900 border border-slate-800 px-3.5 py-2 rounded-xl">
-          <Globe className="w-4 h-4 text-emerald-400" />
+        <div className="flex items-center space-x-2 text-xs text-ink-subtle bg-surface border border-line px-3.5 py-2 rounded-xl">
+          <Globe className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
           <span>
             {accounts.length} account{accounts.length === 1 ? '' : 's'} connected
           </span>
@@ -123,14 +123,11 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
 
       {/* Connected accounts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div
-          className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-3 text-xs"
-          data-testid="linkedin-card"
-        >
+        <div className="bg-surface border border-line p-4 rounded-xl space-y-3 text-xs" data-testid="linkedin-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Linkedin className="w-4 h-4 text-blue-400" />
-              <span className="font-bold text-slate-200">LinkedIn</span>
+              <Linkedin className="w-4 h-4 text-blue-700 dark:text-blue-400" />
+              <span className="font-bold text-ink">LinkedIn</span>
             </div>
             <span
               className={`w-2 h-2 rounded-full ${
@@ -145,9 +142,9 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
                   <img src={linkedin.avatarUrl} alt="" className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" />
                 )}
                 <div className="min-w-0">
-                  <p className="text-sm text-slate-100 font-semibold truncate">{linkedin.displayName}</p>
+                  <p className="text-sm text-ink font-semibold truncate">{linkedin.displayName}</p>
                   <p
-                    className={`text-2xs ${linkedin.expired || (linkedinDays ?? 99) < 7 ? 'text-amber-300' : 'text-slate-400'}`}
+                    className={`text-2xs ${linkedin.expired || (linkedinDays ?? 99) < 7 ? 'text-amber-700 dark:text-amber-300' : 'text-ink-subtle'}`}
                   >
                     {linkedin.expired
                       ? 'Access expired: reconnect to keep posting'
@@ -159,14 +156,14 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
                 <button
                   onClick={connect}
                   disabled={Boolean(busy)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold disabled:opacity-60"
+                  className="px-3 py-1.5 rounded-lg bg-surface-muted hover:bg-line-strong text-ink font-semibold disabled:opacity-60"
                 >
                   Reconnect
                 </button>
                 <button
                   onClick={() => disconnect(linkedin.id)}
                   disabled={Boolean(busy)}
-                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900 text-slate-300 disabled:opacity-60"
+                  className="p-1.5 rounded-lg bg-surface-muted hover:bg-rose-100 dark:hover:bg-rose-900 text-ink-muted disabled:opacity-60"
                   aria-label="Disconnect LinkedIn"
                   title="Disconnect"
                 >
@@ -176,7 +173,7 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
             </div>
           ) : available ? (
             <div className="flex items-center justify-between gap-3">
-              <p className="text-slate-400">Post as your LinkedIn profile. Owners and admins can connect.</p>
+              <p className="text-ink-subtle">Post as your LinkedIn profile. Owners and admins can connect.</p>
               <button
                 onClick={connect}
                 disabled={Boolean(busy)}
@@ -187,16 +184,16 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
               </button>
             </div>
           ) : (
-            <p className="text-slate-400">
+            <p className="text-ink-subtle">
               Not set up on this server. The admin needs LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET,
               LINKEDIN_REDIRECT_URI and AI_KEYS_ENCRYPTION_KEY (see HOW_TO_RUN.md).
             </p>
           )}
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2 text-xs">
-          <span className="font-bold text-slate-200">Instagram, TikTok, X, Facebook</span>
-          <p className="text-slate-400">
+        <div className="bg-surface border border-line p-4 rounded-xl space-y-2 text-xs">
+          <span className="font-bold text-ink">Instagram, TikTok, X, Facebook</span>
+          <p className="text-ink-subtle">
             Not posted directly yet. When a post is approved, scheduled or published, Launchpad sends a signed webhook
             your Zapier, Make or Buffer automation can post from (Settings → Security & Webhooks).
           </p>
@@ -204,14 +201,14 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
       </div>
 
       {error && (
-        <p className="text-sm font-semibold text-rose-300" role="alert">
+        <p className="text-sm font-semibold text-rose-700 dark:text-rose-300" role="alert">
           {error}
         </p>
       )}
 
       {recentPosts.length > 0 && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
-          <h3 className="text-xs font-bold text-slate-200">Recent LinkedIn activity</h3>
+        <div className="bg-surface border border-line rounded-xl p-4 space-y-2">
+          <h2 className="text-xs font-bold text-ink">Recent LinkedIn activity</h2>
           <ul className="space-y-1.5 text-xs">
             {recentPosts.map((p) => {
               const a = workspaceAssets.find((x) => x.id === p.assetId);
@@ -219,23 +216,25 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
                 <li key={p.id} className="flex items-center justify-between gap-3">
                   <span className="flex items-center space-x-2 min-w-0">
                     {p.status === 'published' ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
                     ) : p.status === 'failed' ? (
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400 shrink-0" />
                     ) : (
-                      <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin shrink-0" />
+                      <Loader2 className="w-3.5 h-3.5 text-ink-subtle animate-spin shrink-0" />
                     )}
-                    <span className="text-slate-200 truncate">{a?.title ?? p.assetId}</span>
-                    {p.status === 'failed' && p.error && <span className="text-amber-300 truncate">· {p.error}</span>}
+                    <span className="text-ink truncate">{a?.title ?? p.assetId}</span>
+                    {p.status === 'failed' && p.error && (
+                      <span className="text-amber-700 dark:text-amber-300 truncate">· {p.error}</span>
+                    )}
                   </span>
-                  <span className="flex items-center space-x-2 shrink-0 text-slate-400">
+                  <span className="flex items-center space-x-2 shrink-0 text-ink-subtle">
                     <span>{new Date(p.updatedAt).toLocaleString()}</span>
                     {p.externalUrl && (
                       <a
                         href={p.externalUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-300 hover:text-blue-200 flex items-center space-x-1"
+                        className="text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 flex items-center space-x-1"
                       >
                         <span>View</span>
                         <ExternalLink className="w-3 h-3" />
@@ -245,7 +244,7 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
                       <button
                         onClick={() => publish(a.id)}
                         disabled={Boolean(busy)}
-                        className="text-indigo-300 hover:text-indigo-200 font-semibold disabled:opacity-60"
+                        className="text-indigo-700 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-200 font-semibold disabled:opacity-60"
                       >
                         Retry
                       </button>
@@ -262,10 +261,10 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
         {/* Left Column: Scheduled Content Calendar (7 Cols) */}
         <div className="lg:col-span-7 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-              <Clock className="w-4 h-4 text-indigo-300" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+              <Clock className="w-4 h-4 text-indigo-700 dark:text-indigo-300" />
               <span>Approved & Scheduled Queue ({scheduledAssets.length})</span>
-            </h3>
+            </h2>
             <span className="text-xs text-ink-subtle">
               {linkedin
                 ? 'LinkedIn posts go out automatically at their scheduled time'
@@ -275,9 +274,9 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
 
           <div className="space-y-3">
             {scheduledAssets.length === 0 ? (
-              <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl text-center text-slate-400 text-xs space-y-2">
+              <div className="bg-surface border border-line p-8 rounded-2xl text-center text-ink-subtle text-xs space-y-2">
                 <p>No content currently scheduled for auto-publishing.</p>
-                <p className="text-2xs text-slate-400">
+                <p className="text-2xs text-ink-subtle">
                   Submit assets through AI Studio and approve them in the Approval Queue to populate this schedule.
                 </p>
               </div>
@@ -288,16 +287,16 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
                   onClick={() => setPreviewAssetId(asset.id)}
                   className={`p-4 rounded-2xl border transition-all space-y-3 cursor-pointer ${
                     selectedAsset?.id === asset.id
-                      ? 'bg-slate-900 border-indigo-500 shadow-lg shadow-indigo-500/10'
-                      : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                      ? 'bg-surface border-indigo-500 shadow-lg shadow-indigo-500/10'
+                      : 'bg-surface border-line hover:border-line-strong'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs font-bold text-white capitalize bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
+                      <span className="text-xs font-bold text-ink capitalize bg-canvas px-2.5 py-1 rounded-lg border border-line">
                         {asset.platform}
                       </span>
-                      <h4 className="text-xs font-bold text-slate-200 line-clamp-1">{asset.title}</h4>
+                      <h3 className="text-xs font-bold text-ink line-clamp-1">{asset.title}</h3>
                     </div>
                     {(() => {
                       const p = postFor(asset.id);
@@ -314,8 +313,8 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
                               : 'Via webhook';
                       const tone =
                         p?.status === 'failed'
-                          ? 'text-amber-300 bg-amber-950/60 border-amber-800/60'
-                          : 'text-emerald-400 bg-emerald-950/60 border-emerald-800/60';
+                          ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800/60'
+                          : 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800/60';
                       return (
                         <span
                           className={`text-2xs font-mono border px-2 py-0.5 rounded-full ${tone}`}
@@ -327,12 +326,12 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
                     })()}
                   </div>
 
-                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">{asset.caption}</p>
+                  <p className="text-xs text-ink-muted line-clamp-2 leading-relaxed">{asset.caption}</p>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-2xs">
-                    <span className="text-slate-400">
+                  <div className="flex items-center justify-between pt-2 border-t border-line text-2xs">
+                    <span className="text-ink-subtle">
                       Scheduled:{' '}
-                      <strong className="text-slate-200">
+                      <strong className="text-ink">
                         {asset.scheduledTime ? new Date(asset.scheduledTime).toLocaleString() : 'Not scheduled'}
                       </strong>
                     </span>
@@ -358,68 +357,68 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
         {/* Right Column: Platform Device Live Preview Wrapper (5 Cols) */}
         <div className="lg:col-span-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-              <Smartphone className="w-4 h-4 text-purple-400" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+              <Smartphone className="w-4 h-4 text-purple-700 dark:text-purple-400" />
               <span>Platform Device Preview</span>
-            </h3>
+            </h2>
             <span className="text-xs font-mono text-indigo-700 dark:text-indigo-300 uppercase">
               {selectedAsset?.platform || 'linkedin'}
             </span>
           </div>
 
           {selectedAsset ? (
-            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-2xl relative overflow-hidden">
+            <div className="bg-canvas border border-line rounded-3xl p-5 space-y-4 shadow-2xl relative overflow-hidden">
               {/* Device Header Simulator */}
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+              <div className="flex items-center justify-between border-b border-line/80 pb-3">
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-white text-xs">
                     AC
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-white block">
+                    <span className="text-xs font-bold text-ink block">
                       {selectedAsset.platform === 'linkedin' && linkedin ? linkedin.displayName : currentWorkspace.name}
                     </span>
-                    <span className="text-2xs text-slate-400">Preview</span>
+                    <span className="text-2xs text-ink-subtle">Preview</span>
                   </div>
                 </div>
-                <span className="text-2xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full capitalize">
+                <span className="text-2xs bg-surface-muted text-ink-muted px-2 py-0.5 rounded-full capitalize">
                   {selectedAsset.platform}
                 </span>
               </div>
 
               {/* Caption Text Body */}
-              <div className="text-xs text-slate-200 leading-relaxed whitespace-pre-line font-sans">
+              <div className="text-xs text-ink leading-relaxed whitespace-pre-line font-sans">
                 {selectedAsset.caption}
               </div>
 
               {/* Hashtags */}
               <div className="flex flex-wrap gap-1">
                 {selectedAsset.hashtags.map((h, i) => (
-                  <span key={i} className="text-2xs text-indigo-300 font-medium">
+                  <span key={i} className="text-2xs text-indigo-700 dark:text-indigo-300 font-medium">
                     {h}
                   </span>
                 ))}
               </div>
 
               {/* Mock Visual Asset Box */}
-              <div className="w-full h-48 bg-slate-900 rounded-2xl border border-slate-800/80 p-4 flex flex-col items-center justify-center text-center space-y-2 relative overflow-hidden">
-                <div className="w-12 h-12 rounded-xl bg-indigo-950 border border-indigo-800 flex items-center justify-center text-indigo-300">
+              <div className="w-full h-48 bg-surface rounded-2xl border border-line/80 p-4 flex flex-col items-center justify-center text-center space-y-2 relative overflow-hidden">
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-700 dark:text-indigo-300">
                   <Sparkles className="w-6 h-6" />
                 </div>
                 <div className="space-y-0.5 max-w-xs">
-                  <span className="text-xs font-bold text-white block">Visual Art Direction</span>
-                  <p className="text-2xs text-slate-400 line-clamp-2 italic">{selectedAsset.visualDirection}</p>
+                  <span className="text-xs font-bold text-ink block">Visual Art Direction</span>
+                  <p className="text-2xs text-ink-subtle line-clamp-2 italic">{selectedAsset.visualDirection}</p>
                 </div>
               </div>
 
               {/* Device Footer Actions */}
-              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-2xs text-slate-400">
+              <div className="pt-2 border-t border-line/80 flex items-center justify-between text-2xs text-ink-subtle">
                 <span>Like • Comment • Repost</span>
-                <span className="text-slate-400 font-medium">Preview only</span>
+                <span className="text-ink-subtle font-medium">Preview only</span>
               </div>
             </div>
           ) : (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 text-xs">
+            <div className="bg-surface border border-line rounded-2xl p-12 text-center text-ink-subtle text-xs">
               Select an asset to see live native device formatting.
             </div>
           )}
@@ -433,14 +432,14 @@ export const SocialPublisher: React.FC<SocialPublisherProps> = ({ currentWorkspa
             <Bot className="w-5 h-5" />
           </span>
           <div>
-            <h4 className="text-sm font-extrabold text-white">Smart Engagement & AI Auto-Replies</h4>
-            <p className="text-xs text-slate-300 mt-0.5">
+            <h3 className="text-sm font-extrabold text-ink">Smart Engagement & AI Auto-Replies</h3>
+            <p className="text-xs text-ink-muted mt-0.5">
               4 user comments pending approval across LinkedIn, Instagram, and TikTok.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 text-xs font-bold text-purple-300">
+        <div className="flex items-center space-x-2 text-xs font-bold text-purple-700 dark:text-purple-300">
           <span>
             Switch to the <strong>Smart Engagement</strong> tab to review AI auto-reply suggestions.
           </span>

@@ -106,9 +106,9 @@ export const ThreeDAssetViewer: React.FC = () => {
             <Box className="h-5 w-5" />
           </span>
           <div>
-            <h3 id="viewer-title" className="text-base font-bold text-slate-900 dark:text-white">
+            <h2 id="viewer-title" className="text-base font-bold text-slate-900 dark:text-white">
               3D asset preview
-            </h3>
+            </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               Drag or use the arrow keys to rotate. Scroll or press + / − to zoom.
             </p>
@@ -130,7 +130,7 @@ export const ThreeDAssetViewer: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12">
-        <div className="relative border-b border-slate-200 bg-slate-950 dark:border-slate-800 lg:col-span-7 lg:border-b-0 lg:border-r">
+        <div className="relative border-b border-slate-200 bg-canvas dark:border-slate-800 lg:col-span-7 lg:border-b-0 lg:border-r">
           <div
             ref={mountRef}
             tabIndex={0}
@@ -148,14 +148,16 @@ export const ThreeDAssetViewer: React.FC = () => {
             </p>
           )}
           <div className="absolute left-3 top-3 flex gap-2 text-xs font-semibold" aria-hidden="true">
-            <span className="rounded-full bg-slate-900 px-2.5 py-1 text-emerald-300">{fps} FPS</span>
-            <span className="rounded-full bg-slate-900 px-2.5 py-1 text-slate-200">{selectedModel.polyCount}</span>
+            <span className="rounded-full bg-surface px-2.5 py-1 text-emerald-700 dark:text-emerald-300">
+              {fps} FPS
+            </span>
+            <span className="rounded-full bg-surface px-2.5 py-1 text-ink">{selectedModel.polyCount}</span>
           </div>
           <div className="absolute inset-x-3 bottom-3 flex flex-wrap gap-2">
             <button
               aria-pressed={autoRotate}
               onClick={() => setAutoRotate(!autoRotate)}
-              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white ring-1 ring-slate-700 hover:bg-slate-800 aria-pressed:bg-indigo-600"
+              className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm font-semibold text-white ring-1 ring-line-strong hover:bg-surface-muted aria-pressed:bg-indigo-600"
             >
               <RotateCw className="h-4 w-4" aria-hidden="true" />
               Auto-rotate {autoRotate ? 'on' : 'off'}
@@ -163,7 +165,7 @@ export const ThreeDAssetViewer: React.FC = () => {
             <button
               aria-pressed={wireframe}
               onClick={() => setWireframe(!wireframe)}
-              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white ring-1 ring-slate-700 hover:bg-slate-800 aria-pressed:bg-indigo-600"
+              className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm font-semibold text-white ring-1 ring-line-strong hover:bg-surface-muted aria-pressed:bg-indigo-600"
             >
               <Layers className="h-4 w-4" aria-hidden="true" />
               Wireframe {wireframe ? 'on' : 'off'}
@@ -176,7 +178,7 @@ export const ThreeDAssetViewer: React.FC = () => {
             <p className="text-xs font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">
               Sample asset · {selectedModel.influencerName}
             </p>
-            <h4 className="mt-1 text-lg font-bold text-slate-900 dark:text-white">{selectedModel.name}</h4>
+            <h3 className="mt-1 text-lg font-bold text-slate-900 dark:text-white">{selectedModel.name}</h3>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{selectedModel.tagline}</p>
           </div>
 

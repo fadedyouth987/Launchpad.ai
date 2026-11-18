@@ -196,7 +196,7 @@ export const SystemStatus: React.FC<{ workspaceId: string }> = ({ workspaceId })
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Endpoint checks</h3>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">Endpoint checks</h2>
           {checks.length > 0 && (
             <span
               className={`text-xs font-bold ${passed === checks.length ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-600'}`}
@@ -208,16 +208,16 @@ export const SystemStatus: React.FC<{ workspaceId: string }> = ({ workspaceId })
         <div className="mt-3 divide-y divide-slate-100 dark:divide-slate-800">
           {checks.map((c) => (
             <div key={c.url} className="flex items-center justify-between gap-3 py-2.5 text-xs">
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 {c.ok ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 ) : (
                   <XCircle className="w-4 h-4 text-rose-500" />
                 )}
                 <span className="font-semibold text-slate-800 dark:text-slate-100">{c.name}</span>
-                <code className="text-ink-subtle">{c.url}</code>
+                <code className="break-all text-ink-subtle">{c.url}</code>
               </div>
-              <span className={c.ok ? 'text-ink-subtle' : 'text-rose-600 font-semibold'}>
+              <span className={`shrink-0 ${c.ok ? 'text-ink-subtle' : 'text-rose-600 font-semibold'}`}>
                 {c.note} · {c.latencyMs}ms
               </span>
             </div>
@@ -233,7 +233,7 @@ export const SystemStatus: React.FC<{ workspaceId: string }> = ({ workspaceId })
 
       {health && (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Integrations reported by the server</h3>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">Integrations reported by the server</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {Object.entries(health.integrations)
               .filter(([, on]) => typeof on === 'boolean')
@@ -250,7 +250,7 @@ export const SystemStatus: React.FC<{ workspaceId: string }> = ({ workspaceId })
       )}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-white">What works in this build</h3>
+        <h2 className="text-sm font-bold text-slate-900 dark:text-white">What works in this build</h2>
         <div className="mt-3 divide-y divide-slate-100 dark:divide-slate-800">
           {capabilities(health).map((c) => (
             <div

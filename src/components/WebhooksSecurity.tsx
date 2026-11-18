@@ -125,12 +125,12 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
   return (
     <div className="space-y-8 w-full">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-6">
         <div>
           <div className="flex items-center space-x-2">
             <span
               data-testid="webhook-delivery-mode"
-              className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${health?.integrations.webhookDelivery ? 'bg-emerald-950 text-emerald-300 border-emerald-800/60' : 'bg-amber-950 text-amber-300 border-amber-800/60'}`}
+              className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${health?.integrations.webhookDelivery ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60'}`}
             >
               {health
                 ? health.integrations.webhookDelivery
@@ -150,9 +150,9 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
 
         <button
           onClick={handleDownloadGdprExport}
-          className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2 rounded-xl text-xs font-bold flex items-center space-x-2 transition-colors"
+          className="bg-surface-muted hover:bg-line-strong text-ink border border-line-strong px-4 py-2 rounded-xl text-xs font-bold flex items-center space-x-2 transition-colors"
         >
-          <Download className="w-4 h-4 text-indigo-300" />
+          <Download className="w-4 h-4 text-indigo-700 dark:text-indigo-300" />
           <span>Download data export (JSON)</span>
         </button>
       </div>
@@ -166,18 +166,18 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
         {/* Left Column: Webhooks & SSRF Guard Test Runner (7 Cols) */}
         <div className="lg:col-span-7 space-y-6">
           {/* SSRF Egress Security Test Runner */}
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                <ShieldAlert className="w-4 h-4 text-emerald-400" />
+          <div className="bg-surface border border-line p-6 rounded-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <h2 className="text-sm font-bold text-ink flex items-center space-x-2">
+                <ShieldAlert className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                 <span>Webhook URL Check</span>
-              </h3>
-              <span className="text-2xs font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/60">
+              </h2>
+              <span className="text-2xs font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/60">
                 DNS + IP range check
               </span>
             </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-ink-subtle leading-relaxed">
               The server parses the URL (http/https only), resolves its DNS, and blocks it if any address is private,
               loopback, link-local (e.g. <code>169.254.169.254</code>), or otherwise non-public, including IPv6 and
               encoded forms like <code>http://2130706433/</code>. No request is sent either way.
@@ -189,7 +189,7 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
                 value={testUrlInput}
                 onChange={(e) => setTestUrlInput(e.target.value)}
                 placeholder="https://api.yourdomain.com/webhook"
-                className="flex-1 bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:border-indigo-500 outline-none font-mono"
+                className="flex-1 bg-canvas border border-line text-ink text-xs rounded-xl px-3.5 py-2.5 focus:border-indigo-500 outline-none font-mono"
               />
               <button
                 onClick={() => handleTestWebhookDelivery()}
@@ -203,22 +203,22 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
 
             {/* Quick SSRF Attack Preset Buttons */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-2xs text-slate-400">Test SSRF Targets:</span>
+              <span className="text-2xs text-ink-subtle">Test SSRF Targets:</span>
               <button
                 onClick={() => handleTestWebhookDelivery('http://127.0.0.1:8080/internal-admin')}
-                className="text-2xs bg-rose-950/60 text-rose-300 border border-rose-800/60 px-2.5 py-1 rounded-lg font-mono hover:bg-rose-900 transition-colors"
+                className="text-2xs bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 px-2.5 py-1 rounded-lg font-mono hover:bg-rose-100 dark:hover:bg-rose-900 transition-colors"
               >
                 🚫 127.0.0.1:8080
               </button>
               <button
                 onClick={() => handleTestWebhookDelivery('http://169.254.169.254/latest/meta-data/')}
-                className="text-2xs bg-rose-950/60 text-rose-300 border border-rose-800/60 px-2.5 py-1 rounded-lg font-mono hover:bg-rose-900 transition-colors"
+                className="text-2xs bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 px-2.5 py-1 rounded-lg font-mono hover:bg-rose-100 dark:hover:bg-rose-900 transition-colors"
               >
                 🚫 169.254.169.254 (Cloud Metadata)
               </button>
               <button
                 onClick={() => handleTestWebhookDelivery('https://example.com/webhooks/launchpad')}
-                className="text-2xs bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 px-2.5 py-1 rounded-lg font-mono hover:bg-emerald-900 transition-colors"
+                className="text-2xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-1 rounded-lg font-mono hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors"
               >
                 ✓ Public HTTPS Endpoint
               </button>
@@ -229,10 +229,10 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
               <div
                 className={`p-4 rounded-xl border text-xs font-mono space-y-2 ${
                   ssrfTestResult.status === 'blocked_ssrf'
-                    ? 'bg-rose-950/80 border-rose-800 text-rose-200'
+                    ? 'bg-rose-50 dark:bg-rose-950/80 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200'
                     : ssrfTestResult.simulated
-                      ? 'bg-amber-950/80 border-amber-800 text-amber-200'
-                      : 'bg-emerald-950/80 border-emerald-800 text-emerald-200'
+                      ? 'bg-amber-50 dark:bg-amber-950/80 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200'
+                      : 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
                 }`}
               >
                 <div className="flex items-center justify-between font-bold">
@@ -251,25 +251,25 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
           </div>
 
           {/* Webhook Endpoints List */}
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                <Globe className="w-4 h-4 text-indigo-300" />
+          <div className="bg-surface border border-line p-6 rounded-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <h2 className="text-sm font-bold text-ink flex items-center space-x-2">
+                <Globe className="w-4 h-4 text-indigo-700 dark:text-indigo-300" />
                 <span>Configured Webhook Receivers ({workspaceEndpoints.length})</span>
-              </h3>
+              </h2>
             </div>
 
             <div className="space-y-3">
               {workspaceEndpoints.map((ep) => (
-                <div key={ep.id} className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 text-xs">
+                <div key={ep.id} className="bg-canvas p-4 rounded-xl border border-line space-y-2 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-slate-200 font-bold truncate max-w-xs">{ep.url}</span>
-                    <span className="text-2xs bg-slate-900 text-slate-400 border border-slate-700 px-2 py-0.5 rounded font-mono">
+                    <span className="font-mono text-ink font-bold truncate max-w-xs">{ep.url}</span>
+                    <span className="text-2xs bg-surface text-ink-subtle border border-line-strong px-2 py-0.5 rounded font-mono">
                       Never delivered
                     </span>
                   </div>
-                  <p className="text-slate-400 text-2xs">{ep.description}</p>
-                  <div className="flex items-center space-x-2 text-2xs text-slate-400 font-mono">
+                  <p className="text-ink-subtle text-2xs">{ep.description}</p>
+                  <div className="flex items-center space-x-2 text-2xs text-ink-subtle font-mono">
                     <span>Secret: {ep.secretPreview}</span>
                   </div>
                 </div>
@@ -279,10 +279,10 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
             {revealedSecret && (
               <div
                 data-testid="webhook-secret-once"
-                className="p-3 rounded-xl border border-amber-700 bg-amber-950/70 text-xs text-amber-100 space-y-2"
+                className="p-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/70 text-xs text-amber-900 dark:text-amber-100 space-y-2"
               >
                 <p className="font-bold">Copy this signing secret now. It will not be shown again.</p>
-                <code className="block break-all font-mono text-2xs bg-slate-950 p-2 rounded-lg">
+                <code className="block break-all font-mono text-2xs bg-canvas p-2 rounded-lg">
                   {revealedSecret.secret}
                 </code>
                 <div className="flex gap-2">
@@ -294,7 +294,7 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
                   </button>
                   <button
                     onClick={() => setRevealedSecret(null)}
-                    className="px-3 py-1 rounded-lg bg-slate-800 font-bold"
+                    className="px-3 py-1 rounded-lg bg-surface-muted font-bold"
                   >
                     I've saved it
                   </button>
@@ -302,34 +302,37 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
               </div>
             )}
             {endpointError && (
-              <div role="alert" className="p-3 rounded-xl border border-rose-800 bg-rose-950/60 text-xs text-rose-200">
+              <div
+                role="alert"
+                className="p-3 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 text-xs text-rose-800 dark:text-rose-200"
+              >
                 {endpointError}
               </div>
             )}
 
             {/* Add New Endpoint Input */}
-            <div className="pt-2 border-t border-slate-800 space-y-2">
-              <span className="text-xs font-bold text-slate-300">Add Webhook Receiver</span>
+            <div className="pt-2 border-t border-line space-y-2">
+              <span className="text-xs font-bold text-ink-muted">Add Webhook Receiver</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
                   type="text"
                   value={newWebhookUrl}
                   onChange={(e) => setNewWebhookUrl(e.target.value)}
                   placeholder="https://api.domain.com/webhook"
-                  className="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none"
+                  className="bg-canvas border border-line text-ink text-xs rounded-xl px-3 py-2 outline-none"
                 />
                 <input
                   type="text"
                   value={newWebhookDesc}
                   onChange={(e) => setNewWebhookDesc(e.target.value)}
                   placeholder="Receiver description..."
-                  className="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none"
+                  className="bg-canvas border border-line text-ink text-xs rounded-xl px-3 py-2 outline-none"
                 />
               </div>
               <button
                 onClick={handleAddEndpoint}
                 disabled={isAddingEndpoint}
-                className="disabled:opacity-60 w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl text-xs font-bold border border-slate-700 flex items-center justify-center space-x-1"
+                className="disabled:opacity-60 w-full bg-surface-muted hover:bg-line-strong text-ink py-2 rounded-xl text-xs font-bold border border-line-strong flex items-center justify-center space-x-1"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Register Webhook Receiver</span>
@@ -341,17 +344,17 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
         {/* Right Column: Audit Logs & GDPR Controls (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
           {/* GDPR & Data Retention Policy Control */}
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center space-x-2 border-b border-slate-800 pb-3">
-              <Lock className="w-4 h-4 text-purple-400" />
+          <div className="bg-surface border border-line p-6 rounded-2xl space-y-4">
+            <h2 className="text-sm font-bold text-ink flex items-center space-x-2 border-b border-line pb-3">
+              <Lock className="w-4 h-4 text-purple-700 dark:text-purple-400" />
               <span>Data Retention Settings</span>
-            </h3>
+            </h2>
 
             <div className="space-y-3 text-xs">
-              <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
+              <div className="flex items-center justify-between p-3 bg-canvas rounded-xl border border-line">
                 <div>
-                  <span className="font-bold text-slate-200 block">Legal Hold Status</span>
-                  <span className="text-2xs text-slate-400">Prevents retention auto-purge when active</span>
+                  <span className="font-bold text-ink block">Legal Hold Status</span>
+                  <span className="text-2xs text-ink-subtle">Prevents retention auto-purge when active</span>
                 </div>
 
                 <button
@@ -359,28 +362,30 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
                   className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
                     currentWorkspace.legalHoldActive
                       ? 'bg-amber-600 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                      : 'bg-surface-muted text-ink-subtle hover:text-ink'
                   }`}
                 >
                   {currentWorkspace.legalHoldActive ? 'Legal Hold ACTIVE' : 'Enable Hold'}
                 </button>
               </div>
 
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+              <div className="p-3 bg-canvas rounded-xl border border-line space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-200">Retention Policy Window</span>
-                  <span className="font-mono text-indigo-300 font-bold">{currentWorkspace.retentionDays} Days</span>
+                  <span className="font-bold text-ink">Retention Policy Window</span>
+                  <span className="font-mono text-indigo-700 dark:text-indigo-300 font-bold">
+                    {currentWorkspace.retentionDays} Days
+                  </span>
                 </div>
-                <p className="text-2xs text-slate-400">
+                <p className="text-2xs text-ink-subtle">
                   Setting only: automatic purging is not built yet (there are no background jobs).
                 </p>
               </div>
 
               {/* Data Erasure Safety Trigger */}
-              <div className="pt-2 border-t border-slate-800">
+              <div className="pt-2 border-t border-line">
                 <button
                   onClick={() => setShowErasureModal(true)}
-                  className="w-full bg-rose-950/80 hover:bg-rose-900 border border-rose-800/80 text-rose-300 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors"
+                  className="w-full bg-rose-50 dark:bg-rose-950/80 hover:bg-rose-100 dark:hover:bg-rose-900 border border-rose-200 dark:border-rose-800/80 text-rose-700 dark:text-rose-300 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                   <span>Erase workspace data</span>
@@ -390,11 +395,11 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
           </div>
 
           {/* Immutable Security Audit Logs */}
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center space-x-2 border-b border-slate-800 pb-3">
-              <Activity className="w-4 h-4 text-emerald-400" />
+          <div className="bg-surface border border-line p-6 rounded-2xl space-y-4">
+            <h2 className="text-sm font-bold text-ink flex items-center space-x-2 border-b border-line pb-3">
+              <Activity className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
               <span>Audit log</span>
-            </h3>
+            </h2>
 
             <div
               tabIndex={0}
@@ -403,7 +408,7 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
               className="space-y-2.5 max-h-64 overflow-y-auto pr-1 text-xs"
             >
               {workspaceAuditLogs.length === 0 && (
-                <p className="rounded-xl bg-slate-950 p-3 text-sm text-slate-300">
+                <p className="rounded-xl bg-canvas p-3 text-sm text-ink-muted">
                   No audit events yet. Saving influencers, creating webhooks, role changes and exports are recorded
                   here.
                 </p>
@@ -412,13 +417,13 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
                 <div
                   data-testid="audit-log-entry"
                   key={log.id}
-                  className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1"
+                  className="bg-canvas p-3 rounded-xl border border-line/80 space-y-1"
                 >
-                  <div className="flex items-center justify-between text-2xs text-slate-400">
-                    <span className="font-bold text-slate-300">{log.actor}</span>
+                  <div className="flex items-center justify-between text-2xs text-ink-subtle">
+                    <span className="font-bold text-ink-muted">{log.actor}</span>
                     <span className="font-mono">{new Date(log.timestamp).toLocaleTimeString()}</span>
                   </div>
-                  <p className="text-slate-300 text-2xs">{log.details}</p>
+                  <p className="text-ink-muted text-2xs">{log.details}</p>
                 </div>
               ))}
             </div>
@@ -433,12 +438,12 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
           label="Erase workspace data"
           className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         >
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <h3 className="text-base font-bold text-white flex items-center space-x-2">
-              <AlertTriangle className="w-5 h-5 text-rose-400" />
+          <div className="bg-surface border border-line rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <h2 className="text-base font-bold text-ink flex items-center space-x-2">
+              <AlertTriangle className="w-5 h-5 text-rose-700 dark:text-rose-400" />
               <span>Erase this workspace's data?</span>
-            </h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            </h2>
+            <p className="text-xs text-ink-subtle leading-relaxed">
               Permanently deletes this workspace's campaign assets, AI influencers, Campaign OS data and webhook
               receivers from the server. The credit ledger and audit log are kept as financial and security records.
               Only the workspace owner can do this, and not while legal hold is on. Download an export first if you need
@@ -446,8 +451,8 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
             </p>
 
             <div className="space-y-2">
-              <label className="text-2xs font-bold text-slate-300 uppercase">
-                Type <code className="text-rose-400">{currentWorkspace.slug}</code> to confirm:
+              <label className="text-2xs font-bold text-ink-muted uppercase">
+                Type <code className="text-rose-700 dark:text-rose-400">{currentWorkspace.slug}</code> to confirm:
               </label>
               <input
                 aria-label="Type to confirm"
@@ -455,29 +460,29 @@ export const WebhooksSecurity: React.FC<WebhooksSecurityProps> = ({
                 value={erasureConfirmationText}
                 onChange={(e) => setErasureConfirmationText(e.target.value)}
                 placeholder={currentWorkspace.slug}
-                className="w-full bg-slate-950 border border-slate-800 text-rose-300 text-xs rounded-xl p-3 font-mono outline-none focus:border-rose-500"
+                className="w-full bg-canvas border border-line text-rose-700 dark:text-rose-300 text-xs rounded-xl p-3 font-mono outline-none focus:border-rose-500"
               />
             </div>
 
             {erasureError && (
-              <p role="alert" className="text-xs font-bold text-rose-300">
+              <p role="alert" className="text-xs font-bold text-rose-700 dark:text-rose-300">
                 {erasureError}
               </p>
             )}
             <div className="flex items-center justify-end space-x-3 pt-2">
               <button
                 onClick={() => setShowErasureModal(false)}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-800"
+                className="px-4 py-2 rounded-xl text-xs font-medium text-ink-subtle hover:text-ink bg-surface-muted"
               >
                 Cancel
               </button>
               <button
                 disabled={erasureConfirmationText !== currentWorkspace.slug || erasing}
                 onClick={handleConfirmErase}
-                className={`px-4 py-2 rounded-xl text-xs font-bold text-white transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   erasureConfirmationText === currentWorkspace.slug
-                    ? 'bg-rose-600 hover:bg-rose-500 shadow-md shadow-rose-600/30'
-                    : 'bg-slate-800 text-slate-400 cursor-not-allowed'
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/30'
+                    : 'bg-surface-muted text-ink-subtle cursor-not-allowed'
                 }`}
               >
                 {erasing ? 'Erasing…' : 'Erase permanently'}

@@ -13,12 +13,12 @@ export function SchedulerHeader({ s }: { s: SocialSchedulerState }) {
   return (
     <>
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-line pb-6">
         <div>
           <div className="flex items-center space-x-3">
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-2xs font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800/60">
+                <span className="text-2xs font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                   Drag & Drop Calendar
                 </span>
               </div>
@@ -46,52 +46,52 @@ export function SchedulerHeader({ s }: { s: SocialSchedulerState }) {
             className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs flex items-center space-x-2 shadow-xl shadow-indigo-600/30 transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span>QUEUE NEW POST</span>
+            <span>New post</span>
           </button>
         </div>
       </div>
 
       {/* Dispatch Notification Banner */}
       {dispatchNotification && (
-        <div className="p-4 bg-emerald-950/80 border border-emerald-800 text-emerald-300 rounded-2xl text-xs flex items-center justify-between shadow-xl animate-fade-in">
+        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-2xl text-xs flex items-center justify-between shadow-xl animate-fade-in">
           <div className="flex items-center space-x-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-700 dark:text-emerald-400 shrink-0" />
             <span className="font-bold">{dispatchNotification}</span>
           </div>
-          <span className="text-2xs font-mono text-emerald-400">Queue Synchronized</span>
+          <span className="text-2xs font-mono text-emerald-700 dark:text-emerald-400">Queue Synchronized</span>
         </div>
       )}
 
       {/* Month Metrics & Stats Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
-          <span className="text-2xs font-bold uppercase tracking-wider text-slate-400">Month Scheduled Queue</span>
-          <p className="text-2xl font-extrabold text-white font-mono">
-            {totalScheduledMonth} <span className="text-xs text-slate-400 font-normal">posts</span>
+        <div className="bg-surface border border-line p-4 rounded-2xl space-y-1">
+          <span className="text-2xs font-bold uppercase tracking-wider text-ink-subtle">Month Scheduled Queue</span>
+          <p className="text-2xl font-extrabold text-ink font-mono">
+            {totalScheduledMonth} <span className="text-xs text-ink-subtle font-normal">posts</span>
           </p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
-          <span className="text-2xs font-bold uppercase tracking-wider text-slate-400">Published This Month</span>
-          <p className="text-2xl font-extrabold text-emerald-400 font-mono">
-            {totalPublishedMonth} <span className="text-xs text-slate-400 font-normal">marked published</span>
+        <div className="bg-surface border border-line p-4 rounded-2xl space-y-1">
+          <span className="text-2xs font-bold uppercase tracking-wider text-ink-subtle">Published This Month</span>
+          <p className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-400 font-mono">
+            {totalPublishedMonth} <span className="text-xs text-ink-subtle font-normal">marked published</span>
           </p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
-          <span className="text-2xs font-bold uppercase tracking-wider text-slate-400">Suggested posting times</span>
-          <p className="text-sm font-extrabold text-indigo-300 font-mono">09:00 AM & 02:00 PM</p>
-          <p className="text-2xs text-slate-400">General guidance, not based on your data</p>
+        <div className="bg-surface border border-line p-4 rounded-2xl space-y-1">
+          <span className="text-2xs font-bold uppercase tracking-wider text-ink-subtle">Suggested posting times</span>
+          <p className="text-sm font-extrabold text-indigo-700 dark:text-indigo-300 font-mono">09:00 AM & 02:00 PM</p>
+          <p className="text-2xs text-ink-subtle">General guidance, not based on your data</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
-          <span className="text-2xs font-bold uppercase tracking-wider text-slate-400">Channels (not connected)</span>
+        <div className="bg-surface border border-line p-4 rounded-2xl space-y-1">
+          <span className="text-2xs font-bold uppercase tracking-wider text-ink-subtle">Channels (not connected)</span>
           <div className="flex items-center space-x-2 pt-1">
-            <Linkedin className="w-4 h-4 text-blue-400" />
-            <Instagram className="w-4 h-4 text-pink-400" />
-            <Video className="w-4 h-4 text-teal-400" />
-            <Twitter className="w-4 h-4 text-sky-400" />
-            <Facebook className="w-4 h-4 text-indigo-300" />
+            <Linkedin className="w-4 h-4 text-blue-700 dark:text-blue-400" />
+            <Instagram className="w-4 h-4 text-pink-700 dark:text-pink-400" />
+            <Video className="w-4 h-4 text-teal-700 dark:text-teal-400" />
+            <Twitter className="w-4 h-4 text-sky-700 dark:text-sky-400" />
+            <Facebook className="w-4 h-4 text-indigo-700 dark:text-indigo-300" />
           </div>
         </div>
       </div>

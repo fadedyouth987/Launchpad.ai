@@ -31,7 +31,7 @@ import { TopHeaderBar } from './components/TopHeaderBar';
 import { TopUpModal } from './components/Modals/TopUpModal';
 import { PlanModal } from './components/Modals/PlanModal';
 import { completeLinkedInConnect, publishAssetNow } from './lib/socialApi';
-import { FloatingMarketingWidget } from './components/FloatingMarketingWidget';
+import { OverviewHome } from './components/OverviewHome';
 import { newId } from './lib/ids';
 import { findNavItem, type PageAction } from './navigation';
 import { useHashTab } from './hooks/useHashTab';
@@ -43,7 +43,6 @@ import { AccountControls, ThemeToggle } from './components/layout/AccountControl
 import { ErrorState, LoadingState } from './components/ui/States';
 
 // Each tab is its own chunk, loaded the first time it is opened.
-const LandingHero = lazy(() => import('./components/LandingHero').then((m) => ({ default: m.LandingHero })));
 const AssetStudio = lazy(() => import('./components/AssetStudio').then((m) => ({ default: m.AssetStudio })));
 const InfluencerStudio = lazy(() =>
   import('./components/InfluencerStudio').then((m) => ({ default: m.InfluencerStudio })),
@@ -454,7 +453,7 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
                 id: newId('c'),
                 authorName: me.name,
                 authorAvatar: me.avatar,
-                text: 'Batch Approved via Workflow Decider Engine.',
+                text: 'Approved in bulk.',
                 createdAt: new Date().toISOString(),
               },
             ],
@@ -647,7 +646,7 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
       currentVersion: 1,
       caption,
       hashtags,
-      imagePrompt: `[IP-Adapter Locked Face #${influencer.seed} - ${influencer.faceEmbeddingHash}]: ${influencer.appearancePrompt}. Action: ${prompt}`,
+      imagePrompt: `${influencer.name}: ${influencer.appearancePrompt}. Scene: ${prompt}`,
       visualDirection: `Rendered with ${influencer.loraWeights.lightingModel} lighting. Face Consistency: ${(influencer.loraWeights.faceConsistency * 100).toFixed(0)}%`,
       versions: [
         {
@@ -656,7 +655,7 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
           createdBy: influencer.name,
           caption,
           hashtags,
-          imagePrompt: `[IP-Adapter Locked Face #${influencer.seed}]: ${influencer.appearancePrompt}`,
+          imagePrompt: `${influencer.name}: ${influencer.appearancePrompt}`,
           visualDirection: `${influencer.loraWeights.lightingModel} Studio Lighting`,
           costCredits: cost,
         },
@@ -853,7 +852,7 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
                     onHide={() => hints.dismiss('getting-started')}
                   />
                 )}
-                <LandingHero onStartDemo={setActiveTab} workspaceName={currentWorkspace.name} themeMode={themeMode} />
+                <OverviewHome assets={campaignAssets} health={health} onNavigate={setActiveTab} />
               </>
             )}
 
@@ -937,6 +936,7 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
                 currentWorkspace={currentWorkspace}
                 assets={campaignAssets}
                 ledgerEntries={ledgerEntries}
+                onCreatePost={() => setActiveTab('studio')}
               />
             )}
 
@@ -994,9 +994,6 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
           isOpen={isPlanModalOpen}
           onClose={() => setIsPlanModalOpen(false)}
         />
-
-        {/* Floating Marketing Showcase Bar */}
-        <FloatingMarketingWidget onNavigateToTab={setActiveTab} themeMode={themeMode} />
       </div>
     </div>
   );
