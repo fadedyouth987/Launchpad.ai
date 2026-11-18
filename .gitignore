@@ -8,3 +8,6 @@ coverage/
 !.env.example
 .wrangler/
 .neon
+
+# gstack local runtime state and scratch (design daemon token, review notes)
+.gstack/
