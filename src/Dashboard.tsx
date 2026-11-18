@@ -31,7 +31,7 @@ import { TopHeaderBar } from './components/TopHeaderBar';
 import { TopUpModal } from './components/Modals/TopUpModal';
 import { PlanModal } from './components/Modals/PlanModal';
 import { completeLinkedInConnect, publishAssetNow } from './lib/socialApi';
-import { OverviewHome } from './components/OverviewHome';
+import { NeedsYouToday, OverviewHome } from './components/OverviewHome';
 import { newId } from './lib/ids';
 import { findNavItem, type PageAction } from './navigation';
 import { useHashTab } from './hooks/useHashTab';
@@ -779,9 +779,7 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
         mobileFooter={sidebarFooter}
       />
 
-      <div
-        className={`flex min-w-0 flex-col transition-[padding] duration-200 ${isSidebarCollapsed ? 'lg:pl-sidebar-collapsed' : 'lg:pl-sidebar'}`}
-      >
+      <div className="flex min-w-0 flex-col">
         <TopHeaderBar
           currentWorkspace={currentWorkspace}
           activeTab={activeTab}
@@ -792,6 +790,9 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
           isMenuOpen={isMobileNavOpen}
           onOpenMenu={() => setIsMobileNavOpen(true)}
           auditLogs={auditLogs}
+          workspaces={workspaces}
+          onSelectWorkspace={setCurrentWorkspaceId}
+          onOpenTopUp={() => setIsTopUpOpen(true)}
         />
 
         <main
@@ -845,6 +846,7 @@ export default function Dashboard({ workspaces, setWorkspaces, session, onEndDem
 
             {activeTab === 'overview' && (
               <>
+                <NeedsYouToday assets={campaignAssets} onNavigate={setActiveTab} />
                 {!hints.isDismissed('getting-started') && (
                   <GettingStarted
                     steps={onboardingSteps}

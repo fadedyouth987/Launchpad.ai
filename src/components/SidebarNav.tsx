@@ -19,9 +19,8 @@ interface SidebarNavProps {
 }
 
 /**
- * Main navigation. Desktop: fixed sidebar that can collapse to icons (each keeps its name as a
- * tooltip and accessible label). Below 1024px: an off-canvas drawer opened by the labelled "Menu"
- * button in the header; Escape or the backdrop closes it.
+ * Navigation drawer for screens below 1024px, opened by the labelled "Menu" button in the header; Escape or
+ * the backdrop closes it. From 1024px up the top bar (TopNav + WorkspaceMenu) is the navigation.
  */
 export const SidebarNav: React.FC<SidebarNavProps> = ({
   currentWorkspace,
@@ -94,9 +93,9 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
       <aside
         id="main-navigation"
         aria-label="Sidebar"
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-line bg-surface text-ink transition-[transform,width] duration-200 lg:z-30 ${
-          collapsed ? 'lg:w-sidebar-collapsed' : 'lg:w-sidebar'
-        } w-[min(20rem,88vw)] ${isMobileOpen ? 'translate-x-0 shadow-popover' : '-translate-x-full lg:translate-x-0'}`}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-line bg-surface text-ink transition-transform duration-200 lg:hidden w-[min(20rem,88vw)] ${
+          isMobileOpen ? 'translate-x-0 shadow-popover' : '-translate-x-full'
+        }`}
       >
         {/* Brand + collapse */}
         <div

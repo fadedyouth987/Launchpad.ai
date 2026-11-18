@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Menu, Plus } from 'lucide-react';
+import { ChevronRight, Menu, Plus, Sparkles } from 'lucide-react';
 import type { AuditLog, Workspace } from '../types';
 import { findNavItem, type TabId } from '../navigation';
 import { modeLabel, type Health } from '../hooks/useHealth';
@@ -7,6 +7,7 @@ import { PageFinder } from './layout/PageFinder';
 import { ActivityMenu } from './layout/ActivityMenu';
 import { AccountControls, ThemeToggle } from './layout/AccountControls';
 import { buttonClass } from './ui/Button';
+import { TopNav, WorkspaceMenu } from './layout/TopNav';
 
 interface TopHeaderBarProps {
   currentWorkspace: Workspace;
@@ -18,9 +19,16 @@ interface TopHeaderBarProps {
   isMenuOpen: boolean;
   onOpenMenu: () => void;
   auditLogs: AuditLog[];
+  workspaces: Workspace[];
+  onSelectWorkspace: (id: string) => void;
+  onOpenTopUp: () => void;
 }
 
-/** Sticky top bar: menu (small screens), breadcrumb, page search, status and account. */
+/**
+ * Sticky top bar. Desktop: brand, section tabs, page search, new asset, activity and the workspace menu (which
+ * also holds credits, Workspace & Billing, Settings, theme and account). Small screens: the Menu button opens
+ * the slide-out navigation, with a breadcrumb for orientation.
+ */
 export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
   currentWorkspace,
   activeTab,
@@ -31,6 +39,9 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
   isMenuOpen,
   onOpenMenu,
   auditLogs,
+  workspaces,
+  onSelectWorkspace,
+  onOpenTopUp,
 }) => {
   const { item, section } = findNavItem(activeTab);
   const status = modeLabel(health);
@@ -50,7 +61,23 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
           Menu
         </button>
 
-        <nav aria-label="Breadcrumb" className="min-w-0 shrink">
+        <a
+          href="#/overview"
+          onClick={(e) => {
+            e.preventDefault();
+            setActiveTab('overview');
+          }}
+          className="hidden shrink-0 items-center gap-2.5 lg:flex"
+          aria-label="Launchpad AI, go to Overview"
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-control bg-brand-600 text-white" aria-hidden="true">
+            <Sparkles className="h-5 w-5" />
+          </span>
+          <span className="hidden text-base font-extrabold tracking-tight xl:inline">Launchpad AI</span>
+        </a>
+        <TopNav activeTab={activeTab} onNavigate={setActiveTab} />
+
+        <nav aria-label="Breadcrumb" className="min-w-0 shrink lg:hidden">
           <ol className="flex min-w-0 items-center gap-1.5 text-sm">
             <li className="hidden min-w-0 max-w-[12rem] truncate text-ink-muted 2xl:block">{currentWorkspace.name}</li>
             <li className="hidden 2xl:block" aria-hidden="true">
@@ -70,16 +97,16 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
           </ol>
         </nav>
 
-        <div className="hidden min-w-0 flex-1 justify-center md:flex">
+        <div className="hidden min-w-0 flex-1 justify-center md:flex lg:hidden xl:flex">
           <PageFinder onNavigate={setActiveTab} />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
             onClick={() => setActiveTab('audit_inspector')}
             title="Open System Status"
-            className={`hidden h-9 items-center gap-2 rounded-full border px-3 text-2xs font-bold xl:flex ${
+            className={`hidden h-9 items-center gap-2 rounded-full border px-3 text-2xs font-bold 2xl:flex ${
               status.tone === 'ok'
                 ? 'border-emerald-300 bg-success-50 text-success-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200'
                 : 'border-amber-300 bg-warning-50 text-warning-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-200'
@@ -99,16 +126,26 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
             className={buttonClass('primary', 'sm')}
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">New asset</span>
+            <span className="hidden sm:inline lg:hidden xl:inline">New asset</span>
           </button>
           <ActivityMenu
             logs={auditLogs.filter((l) => l.workspaceId === currentWorkspace.id)}
             onOpenAll={() => setActiveTab('webhooks')}
           />
-          <div className="hidden items-center gap-2 lg:flex">
-            <ThemeToggle themeMode={themeMode} onToggle={onToggleTheme} />
-            <AccountControls themeMode={themeMode} />
-          </div>
+          <WorkspaceMenu
+            currentWorkspace={currentWorkspace}
+            workspaces={workspaces}
+            onSelectWorkspace={onSelectWorkspace}
+            activeTab={activeTab}
+            onNavigate={setActiveTab}
+            onOpenTopUp={onOpenTopUp}
+            footer={
+              <>
+                <ThemeToggle themeMode={themeMode} onToggle={onToggleTheme} />
+                <AccountControls themeMode={themeMode} />
+              </>
+            }
+          />
         </div>
       </div>
     </header>

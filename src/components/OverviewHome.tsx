@@ -34,6 +34,52 @@ const OPEN_IN: Record<CampaignAsset['status'], TabId> = {
   published: 'publisher',
 };
 
+const PLATFORM_LABEL: Record<string, string> = {
+  linkedin: 'LinkedIn',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  twitter: 'X (Twitter)',
+  facebook: 'Facebook',
+};
+
+/**
+ * First thing on the Overview: the post waiting longest for review, with the one action that moves it on.
+ * Nothing is shown when no post is waiting.
+ */
+export function NeedsYouToday({ assets, onNavigate }: { assets: CampaignAsset[]; onNavigate: (to: TabId) => void }) {
+  const waiting = assets.filter((a) => a.status === 'pending_review');
+  if (!waiting.length) return null;
+  const first = waiting[waiting.length - 1];
+  const more = waiting.length - 1;
+  return (
+    <section
+      aria-labelledby="needs-you-title"
+      data-testid="needs-you-today"
+      className="flex flex-col gap-4 rounded-card border border-line bg-surface p-5 shadow-card sm:flex-row sm:items-center sm:gap-5 sm:p-6"
+    >
+      <span className="self-start rounded-full bg-warning-50 px-3 py-1 text-xs font-bold text-warning-800 sm:self-center dark:bg-amber-950/50 dark:text-amber-200">
+        Needs you today
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 id="needs-you-title" className="truncate text-lg font-bold text-ink">
+          {first.title}
+        </h2>
+        <p className="text-sm text-ink-muted">
+          {PLATFORM_LABEL[first.platform] ?? first.platform} post waiting for review
+          {more > 0 ? `, plus ${more} more` : ''}.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => onNavigate('approvals')}
+        className="inline-flex h-11 shrink-0 items-center justify-center rounded-control bg-ink px-5 text-sm font-bold text-canvas hover:opacity-90"
+      >
+        Review post
+      </button>
+    </section>
+  );
+}
+
 /**
  * The Overview below the checklist: the latest posts and what this workspace is connected to. Every row
  * opens the page where the next step happens.
