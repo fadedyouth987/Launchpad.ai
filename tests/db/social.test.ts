@@ -65,6 +65,23 @@ describe('server-side approval', () => {
       (await put(creator, asset(id, { status: 'scheduled', scheduledTime: '2030-01-01T09:00:00.000Z' }))).status,
     ).toBe(200);
   });
+
+  it("a writer's content edit to a cleared post sends it back for review; approvers' edits stay cleared", async () => {
+    const id = `asset-soc-${Date.now()}-e`;
+    const when = { status: 'scheduled' as const, scheduledTime: '2030-01-01T09:00:00.000Z' };
+    expect((await put(approver, asset(id, when))).status).toBe(201);
+    // Rescheduling alone keeps it cleared.
+    const moved = await put(creator, asset(id, { ...when, scheduledTime: '2030-01-02T09:00:00.000Z' }));
+    expect(moved.body.status).toBe('scheduled');
+    // Changing the approved text does not: it is saved as pending review, so the scheduler skips it.
+    const edited = await put(creator, asset(id, { ...when, caption: 'Unreviewed text' }));
+    expect(edited.status).toBe(200);
+    expect(edited.body.status).toBe('pending_review');
+    const { rows } = await db().query("SELECT data->>'status' AS s FROM campaign_assets WHERE id = $1", [id]);
+    expect(rows[0].s).toBe('pending_review');
+    // An approver may edit a cleared post without losing the approval.
+    expect((await put(approver, asset(id, { ...when, caption: 'Approved text' }))).body.status).toBe('scheduled');
+  });
 });
 
 describe('LinkedIn publishing', () => {

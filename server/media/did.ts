@@ -2,7 +2,7 @@
  * D-ID Talks: animates one photo so it speaks the given audio (a talking-head video).
  * Config: DID_API_KEY (from D-ID Studio > API, sent as `Authorization: Basic <key>`).
  * D-ID downloads the photo and audio from URLs, so both must be reachable from the internet: the API
- * hands D-ID short-lived signed links to its own /api/public/media endpoint (see mediaUrls.ts).
+ * hands D-ID short-lived signed links to its own /api/public/media endpoint (see signedMediaUrl in media/service.ts).
  */
 export const didConfigured = () => Boolean(process.env.DID_API_KEY?.trim());
 const BASE = 'https://api.d-id.com';

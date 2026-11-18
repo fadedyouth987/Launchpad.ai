@@ -1,5 +1,6 @@
 // Real-mode tests against Postgres + Neon Auth on the Neon test branch: JWT auth, transactional
 // credits, refunds, persistence and GDPR erase. Run with: npm run test:db
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../server/app';
@@ -93,7 +94,45 @@ describe('real mode (Postgres + Neon Auth)', () => {
     expect(audit.body.entries[0]).toMatchObject({ action: 'ai.influencer.create' });
     expect(audit.body.entries[0].actor).toBe(alice.name);
 
+    // Voice/video media, cloned voices, a connected social account + its history, and an API key.
+    const tag = `${Date.now()}`;
+    const keyId = randomUUID();
+    await db().query(
+      `INSERT INTO generated_media (id, workspace_id, user_id, kind, status, provider, mime_type, data)
+       VALUES ($1, $2, $3, 'audio', 'ready', 'elevenlabs', 'audio/mpeg', '\\x00')`,
+      [`med-gdpr-${tag}`, WS, alice.uid],
+    );
+    await db().query(
+      `INSERT INTO workspace_voices (workspace_id, voice_id, name, consent_by) VALUES ($1, $2, 'Voice', $3)`,
+      [WS, `gdpr-voice-${tag}`, alice.uid],
+    );
+    await db().query(
+      `INSERT INTO social_accounts (id, workspace_id, provider, external_id, token_ciphertext, connected_by)
+       VALUES ($1, $2, 'linkedin', 'member-gdpr', 'v1.x', $3)`,
+      [`soc-gdpr-${tag}`, WS, alice.uid],
+    );
+    await db().query(
+      `INSERT INTO social_posts (id, workspace_id, asset_id, provider, account_external_id, status, requested_by)
+       VALUES ($1, $2, $3, 'linkedin', 'member-gdpr', 'published', $4)`,
+      [`post-gdpr-${tag}`, WS, `asset-gdpr-${tag}`, alice.uid],
+    );
+    await db().query(
+      `INSERT INTO api_keys (id, workspace_id, name, prefix, key_hash, scopes, created_by)
+       VALUES ($1, $2, 'Zapier', 'lp_live_abcd', $3, ARRAY['write'], $4)`,
+      [keyId, WS, 'a'.repeat(64 - tag.length) + tag, alice.uid],
+    );
+    await addMember(WS, `apikey_${keyId}`, 'creator');
+
     expect((await as(alice).post(`/api/workspaces/${WS}/erase`).send({ confirmSlug: 'emu' })).status).toBe(200);
+    for (const table of ['generated_media', 'workspace_voices', 'social_accounts', 'social_posts']) {
+      expect((await db().query(`SELECT 1 FROM ${table} WHERE workspace_id = $1`, [WS])).rowCount, table).toBe(0);
+    }
+    expect(
+      (await db().query('SELECT 1 FROM api_keys WHERE id = $1 AND revoked_at IS NOT NULL', [keyId])).rowCount,
+    ).toBe(1);
+    expect((await db().query('SELECT 1 FROM workspace_members WHERE user_id = $1', [`apikey_${keyId}`])).rowCount).toBe(
+      0,
+    );
     expect((await db().query('SELECT 1 FROM influencers WHERE id = $1', [INF])).rowCount).toBe(0);
     expect((await db().query('SELECT 1 FROM campaign_os_states WHERE workspace_id = $1', [WS])).rowCount).toBe(0);
     expect((await db().query('SELECT 1 FROM ledger_entries WHERE workspace_id = $1', [WS])).rowCount).toBeGreaterThan(

@@ -99,11 +99,13 @@ export function workspaceDataRoutes() {
       if (!body) return;
       if (body.id !== req.params.id)
         return res.status(400).json({ error: 'ID_MISMATCH', message: 'Body id must match the URL.' });
-      const asset = { ...(body as CampaignAsset), workspaceId: ws };
-      const { created, previousStatus } = await saveCampaignAsset(req.authContext!.uid, ws, asset);
+      const sent = { ...(body as CampaignAsset), workspaceId: ws };
+      const { created, previousStatus, status } = await saveCampaignAsset(req.authContext!.uid, ws, sent);
+      // The saved status can differ from the one sent (a writer's edit to a cleared post goes back to review).
+      const asset = { ...sent, status: status as CampaignAsset['status'] };
       const event = assetEventFor(previousStatus, asset);
       const deliveries = event ? await emitWorkspaceEvent(ws, req.authContext!.uid, event, assetEventData(asset)) : [];
-      res.status(created ? 201 : 200).json({ success: true, created, ...(event ? { event, deliveries } : {}) });
+      res.status(created ? 201 : 200).json({ success: true, created, status, ...(event ? { event, deliveries } : {}) });
     }),
   );
 

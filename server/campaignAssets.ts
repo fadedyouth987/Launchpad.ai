@@ -25,32 +25,42 @@ export async function listCampaignAssets(uid: string, workspaceId: string): Prom
   return rows.map((r) => ({ ...(r.data as CampaignAsset), id: r.id, workspaceId }));
 }
 
-/** Creates or updates an asset. Returns whether it was created. */
 /** Statuses that mean "cleared to go out". Scheduled LinkedIn posts are published automatically. */
 export const RELEASED_STATUSES = ['approved', 'scheduled', 'published'];
 /** Roles that may approve: move an asset into a released status from anything else. */
 export const APPROVER_ROLES = ['owner', 'admin', 'approver'] as const;
 
+/** What an approver signed off on: changing any of these on a cleared post needs a new approval. */
+const APPROVED_CONTENT_FIELDS = ['title', 'platform', 'caption', 'hashtags', 'imageId'] as const;
+
+const contentChanged = (before: Partial<CampaignAsset>, after: Partial<CampaignAsset>) =>
+  APPROVED_CONTENT_FIELDS.some((k) => JSON.stringify(before[k] ?? null) !== JSON.stringify(after[k] ?? null));
+
+/**
+ * Creates or updates an asset. Returns whether it was created, the status it had before, and the status
+ * it was saved with (a writer's content edit to a cleared post is saved as 'pending_review').
+ */
 export async function saveCampaignAsset(
   uid: string,
   workspaceId: string,
   asset: CampaignAsset & { userId?: string; createdAt?: string },
-): Promise<{ created: boolean; previousStatus: string | null }> {
+): Promise<{ created: boolean; previousStatus: string | null; status: string }> {
   const ws = await assertRole(uid, workspaceId, WRITE_ROLES);
-  const needsApprover =
-    RELEASED_STATUSES.includes(asset.status) && !(APPROVER_ROLES as readonly string[]).includes(ws.role);
+  const isApprover = (APPROVER_ROLES as readonly string[]).includes(ws.role);
+  const needsApprover = RELEASED_STATUSES.includes(asset.status) && !isApprover;
   if (DEMO_MODE) throw notInDemo();
   const { id, userId: _u, createdAt: _c, workspaceId: _w, ...fields } = asset;
   return withTx(async (c) => {
     await c.query('SELECT 1 FROM workspaces WHERE id = $1 FOR UPDATE', [workspaceId]);
     const existing = await c.query(
-      "SELECT workspace_id, data->>'status' AS status FROM campaign_assets WHERE id = $1",
+      "SELECT workspace_id, data->>'status' AS status, data FROM campaign_assets WHERE id = $1",
       [id],
     );
     if (existing.rows.length && existing.rows[0].workspace_id !== workspaceId)
       throw new ApiError(409, 'ID_CONFLICT', 'That id belongs to another workspace.');
     // Approval is enforced here, not only in the UI: only owners, admins and approvers can clear a post
-    // to go out. Editing an already-cleared post (e.g. rescheduling it) stays open to writers.
+    // to go out. Writers may still reschedule an already-cleared post, but changing what was approved
+    // (text, hashtags, image, title, network) sends it back for review instead of letting it go out.
     const prev = (existing.rows[0]?.status as string | undefined) ?? null;
     if (needsApprover && !(prev && RELEASED_STATUSES.includes(prev))) {
       throw new ApiError(
@@ -58,6 +68,11 @@ export async function saveCampaignAsset(
         'APPROVAL_REQUIRED',
         'Only an owner, admin or approver can approve or schedule a post. Submit it for review instead.',
       );
+    }
+    if (needsApprover && contentChanged(existing.rows[0].data as Partial<CampaignAsset>, fields)) {
+      fields.status = 'pending_review';
+      delete fields.approverId;
+      delete fields.decidedAt;
     }
     if (!existing.rows.length) {
       const n = (await c.query('SELECT count(*)::int AS n FROM campaign_assets WHERE workspace_id = $1', [workspaceId]))
@@ -70,14 +85,18 @@ export async function saveCampaignAsset(
         uid,
         JSON.stringify(fields),
       ]);
-      return { created: true, previousStatus: null };
+      return { created: true, previousStatus: null, status: fields.status };
     }
     await c.query('UPDATE campaign_assets SET data = $3, updated_at = now() WHERE id = $1 AND workspace_id = $2', [
       id,
       workspaceId,
       JSON.stringify(fields),
     ]);
-    return { created: false, previousStatus: (existing.rows[0].status as string | null) ?? null };
+    return {
+      created: false,
+      previousStatus: (existing.rows[0].status as string | null) ?? null,
+      status: fields.status,
+    };
   });
 }
 

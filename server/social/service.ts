@@ -167,14 +167,36 @@ export interface SocialPost {
   updatedAt: string;
 }
 
+const POST_COLS = 'id, asset_id, provider, status, external_url, error, attempts, updated_at';
+
 export async function listPosts(workspaceId: string, limit = 200): Promise<SocialPost[]> {
   if (DEMO_MODE) return [];
   const { rows } = await db().query(
-    `SELECT id, asset_id, provider, status, external_url, error, attempts, updated_at FROM social_posts
-      WHERE workspace_id = $1 ORDER BY updated_at DESC LIMIT $2`,
+    `SELECT ${POST_COLS} FROM social_posts WHERE workspace_id = $1 ORDER BY updated_at DESC LIMIT $2`,
     [workspaceId, limit],
   );
-  return rows.map((r) => ({
+  return rows.map(toPost);
+}
+
+/** One post, by id or by (asset, provider): the latest attempt for that asset. */
+async function findPost(workspaceId: string, by: { id: string } | { assetId: string; provider: string }) {
+  const { rows } =
+    'id' in by
+      ? await db().query(`SELECT ${POST_COLS} FROM social_posts WHERE workspace_id = $1 AND id = $2`, [
+          workspaceId,
+          by.id,
+        ])
+      : await db().query(
+          `SELECT ${POST_COLS} FROM social_posts WHERE workspace_id = $1 AND asset_id = $2 AND provider = $3
+            ORDER BY updated_at DESC LIMIT 1`,
+          [workspaceId, by.assetId, by.provider],
+        );
+  return rows[0] ? toPost(rows[0]) : null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toPost(r: any): SocialPost {
+  return {
     id: r.id,
     assetId: r.asset_id,
     provider: r.provider,
@@ -183,7 +205,7 @@ export async function listPosts(workspaceId: string, limit = 200): Promise<Socia
     error: r.error,
     attempts: Number(r.attempts),
     updatedAt: new Date(r.updated_at).toISOString(),
-  }));
+  };
 }
 
 export type PublishOutcome =
@@ -241,7 +263,7 @@ export async function publishAsset(
     return (upd.rows[0]?.id as string | undefined) ?? null;
   });
   if (!claim) {
-    const existing = (await listPosts(workspaceId)).find((p) => p.assetId === assetId && p.provider === provider);
+    const existing = await findPost(workspaceId, { assetId, provider });
     return {
       status: 'skipped',
       reason:
@@ -324,7 +346,7 @@ export async function publishAsset(
       severity: 'warning',
     });
   }
-  const post = (await listPosts(workspaceId)).find((p) => p.id === claim)!;
+  const post = (await findPost(workspaceId, { id: claim }))!;
   return result
     ? { status: 'published', url: result.url, post }
     : { status: 'failed', error: failure!.message, reconnect: failure!.reconnect, post };
@@ -337,17 +359,23 @@ export async function publishAsset(
 export async function publishDue(opts: { fetchImpl?: typeof fetch; limit?: number } = {}) {
   if (DEMO_MODE) return { checked: 0, published: 0, failed: 0 };
   const platforms = Object.keys(DIRECT_PLATFORMS);
-  // Candidates in SQL; the time check is done here so one malformed scheduledTime cannot break the query.
+  const now = Date.now();
+  // Candidates in SQL, earliest first, so future posts can never crowd due ones out of the window.
+  // scheduledTime is an ISO-8601 UTC string, which sorts and compares as text; the bound allows for
+  // offsets of up to 14h. There is no ::timestamptz cast, so one malformed value cannot break the query;
+  // the exact due check is done below.
+  const upper = new Date(now + 14 * 3600_000).toISOString();
   const { rows: candidates } = await db().query(
     `SELECT a.workspace_id, a.id, a.data->>'scheduledTime' AS at FROM campaign_assets a
        JOIN social_accounts s ON s.workspace_id = a.workspace_id AND s.provider = a.data->>'platform'
       WHERE a.data->>'status' = 'scheduled'
         AND a.data->>'platform' = ANY($1)
+        AND (a.data->>'scheduledTime') COLLATE "C" <= $2
         AND NOT EXISTS (SELECT 1 FROM social_posts p WHERE p.asset_id = a.id AND p.provider = a.data->>'platform')
+      ORDER BY (a.data->>'scheduledTime') COLLATE "C"
       LIMIT 1000`,
-    [platforms],
+    [platforms, upper],
   );
-  const now = Date.now();
   const rows = candidates
     .map((r) => ({ ...r, t: Date.parse(r.at) }))
     .filter((r) => Number.isFinite(r.t) && r.t <= now)

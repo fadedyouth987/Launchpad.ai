@@ -78,9 +78,11 @@ export function socialRoutes(fetchImpl?: typeof fetch) {
   r.get('/social/linkedin/callback', async (req, res) => {
     const q = req.query as Record<string, string | undefined>;
     if (q.error) {
+      // The extended query parser can hand us an array or object here; never call string methods on it.
+      const reason = typeof q.error === 'string' ? q.error : 'failed';
       return res.redirect(
         302,
-        back({ social: 'error', reason: q.error === 'user_cancelled_authorize' ? 'cancelled' : q.error.slice(0, 60) }),
+        back({ social: 'error', reason: reason === 'user_cancelled_authorize' ? 'cancelled' : reason.slice(0, 60) }),
       );
     }
     try {

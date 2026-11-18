@@ -25,6 +25,9 @@ beforeAll(async () => {
   );
   WS = (await as(owner).post('/api/workspaces').send({ name: 'Invite Co' })).body.workspace.id;
   await addMember(WS, creator.uid, 'creator');
+  // These tests are about the invitation flow, not seats: Starter's 3 seats would fill up by the third
+  // invite (owner + creator + accepted invitee). Seat limits have their own tests (memberLimits).
+  await db().query(`UPDATE workspaces SET plan = 'professional' WHERE id = $1`, [WS]);
 });
 afterAll(() => closeDb());
 
@@ -68,6 +71,7 @@ describe('invitations', () => {
 
   it('revoked invites cannot be used', async () => {
     const r = await as(owner).post(`/api/workspaces/${WS}/invites`).send({ email: stranger.email, role: 'viewer' });
+    expect(r.status).toBe(201);
     const t = r.body.inviteUrl.split('#invite=')[1];
     expect((await as(owner).delete(`/api/workspaces/${WS}/invites/${r.body.invite.id}`)).status).toBe(200);
     expect((await as(stranger).post('/api/invites/accept').send({ token: t })).status).toBe(404);
